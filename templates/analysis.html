@@ -35,6 +35,111 @@
         .nav-tabs a.active { color: #fff; background: #4472C4; }
         .container { max-width: 1600px; margin: 0 auto; }
         
+        /* 控制列 */
+        .control-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(255,255,255,0.05);
+            border-radius: 10px;
+            padding: 12px 20px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255,255,255,0.1);
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        .filter-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .filter-group label {
+            color: #888;
+            font-size: 0.85em;
+        }
+        .filter-group select {
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: #fff;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 0.85em;
+            cursor: pointer;
+        }
+        .filter-group select:focus {
+            outline: none;
+            border-color: #4472C4;
+        }
+        .filter-group select option {
+            background: #1a1a2e;
+            color: #fff;
+        }
+        .export-group {
+            display: flex;
+            gap: 10px;
+        }
+        .export-btn {
+            background: linear-gradient(135deg, #4472C4, #2955a8);
+            border: none;
+            color: #fff;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 0.85em;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .export-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(68, 114, 196, 0.4);
+        }
+        
+        /* Loading 動畫 */
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 200px;
+            color: #888;
+        }
+        .loading::after {
+            content: '';
+            width: 30px;
+            height: 30px;
+            border: 3px solid rgba(68, 114, 196, 0.2);
+            border-top-color: #4472C4;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 10px;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* 異常高亮 */
+        .highlight-danger {
+            animation: pulse-danger 2s infinite;
+        }
+        @keyframes pulse-danger {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.4); }
+            50% { box-shadow: 0 0 0 10px rgba(220, 53, 69, 0); }
+        }
+        .trend-up { color: #dc3545; }
+        .trend-up::before { content: '↑ '; }
+        .trend-down { color: #28a745; }
+        .trend-down::before { content: '↓ '; }
+        .trend-stable { color: #888; }
+        .trend-stable::before { content: '→ '; }
+        
+        /* 列印樣式 */
+        @media print {
+            body { background: white; color: black; }
+            .nav-tabs, .control-bar, .tab-nav, .export-btn { display: none; }
+            .tab-content { display: block !important; page-break-after: always; }
+            .card { border: 1px solid #ddd; }
+            .recommendation-box { border: 2px solid #28a745; }
+            .action-summary { border: 2px solid #ffc107; }
+        }
+        
         /* Tab 切換 */
         .tab-nav {
             display: flex;
@@ -337,6 +442,29 @@
             <a href="/query">💬 查詢</a>
             <a href="/aoi">🔬 AOI</a>
             <a href="/analysis" class="active">📈 分析</a>
+        </div>
+        
+        <!-- 控制列：時間篩選 + 匯出 -->
+        <div class="control-bar">
+            <div class="filter-group">
+                <label>📅 時間範圍</label>
+                <select id="dateRange" onchange="applyDateFilter()">
+                    <option value="7">最近 7 天</option>
+                    <option value="14">最近 14 天</option>
+                    <option value="30" selected>最近 30 天</option>
+                    <option value="60">全部 60 天</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>🏭 產線</label>
+                <select id="lineFilter" onchange="applyLineFilter()">
+                    <option value="all">全部產線</option>
+                </select>
+            </div>
+            <div class="export-group">
+                <button class="export-btn" onclick="exportPDF()">📄 匯出 PDF</button>
+                <button class="export-btn" onclick="exportExcel()">📊 匯出 Excel</button>
+            </div>
         </div>
         
         <!-- Tab 導航 -->
@@ -789,7 +917,99 @@
             document.getElementById('predictiveInsight').textContent = data.insight;
         }
         
+        // 時間篩選
+        let currentDateRange = 30;
+        let currentLineFilter = 'all';
+        
+        function applyDateFilter() {
+            currentDateRange = parseInt(document.getElementById('dateRange').value);
+            refreshAllData();
+        }
+        
+        function applyLineFilter() {
+            currentLineFilter = document.getElementById('lineFilter').value;
+            refreshAllData();
+        }
+        
+        function refreshAllData() {
+            // 清除舊圖表
+            Chart.helpers.each(Chart.instances, (instance) => {
+                instance.destroy();
+            });
+            // 重新載入
+            loadOverview();
+            loadMaintenance();
+            loadTemperature();
+            loadCost();
+            loadSupplier();
+            loadPredictive();
+        }
+        
+        // 載入產線選項
+        async function loadLineOptions() {
+            const perf = await fetch('/api/zw_line_performance').then(r => r.json());
+            const select = document.getElementById('lineFilter');
+            perf.labels.forEach(line => {
+                const option = document.createElement('option');
+                option.value = line;
+                option.textContent = line;
+                select.appendChild(option);
+            });
+        }
+        
+        // 匯出 PDF
+        function exportPDF() {
+            alert('📄 PDF 匯出功能\\n\\n正在準備報告...\\n\\n提示：此功能需要後端支援。\\n目前可使用瀏覽器列印功能 (Ctrl+P) 另存為 PDF。');
+            window.print();
+        }
+        
+        // 匯出 Excel
+        function exportExcel() {
+            // 收集數據
+            const data = {
+                title: '深度分析報告',
+                date: new Date().toISOString().slice(0, 10),
+                sections: []
+            };
+            
+            // 生成 CSV
+            let csv = '深度分析報告\\n';
+            csv += '匯出時間,' + new Date().toLocaleString() + '\\n\\n';
+            
+            // 總覽統計
+            csv += '=== 總覽統計 ===\\n';
+            const stats = document.getElementById('overviewStats');
+            if (stats) {
+                const values = stats.querySelectorAll('.value');
+                const labels = stats.querySelectorAll('.label');
+                labels.forEach((label, i) => {
+                    csv += label.textContent + ',' + values[i].textContent + '\\n';
+                });
+            }
+            csv += '\\n';
+            
+            // 操作員排名
+            csv += '=== 操作員 Top 10 ===\\n';
+            csv += '排名,操作員,批次,良率\\n';
+            const rows = document.querySelectorAll('#operatorTable tbody tr');
+            rows.forEach(row => {
+                const cells = row.querySelectorAll('td');
+                csv += Array.from(cells).map(c => c.textContent).join(',') + '\\n';
+            });
+            csv += '\\n';
+            
+            // 下載
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'analysis_report_' + new Date().toISOString().slice(0, 10) + '.csv';
+            link.click();
+            
+            alert('📊 Excel 匯出完成！\\n\\n已下載 CSV 檔案，可用 Excel 開啟。');
+        }
+        
         // 初始化
+        loadLineOptions();
         loadOverview();
         loadMaintenance();
         loadTemperature();

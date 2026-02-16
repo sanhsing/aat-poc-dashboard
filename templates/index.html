@@ -40,6 +40,24 @@
             margin-top: 5px;
         }
         
+        .nav-tabs {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 20px;
+            padding: 15px 0;
+        }
+        .nav-tabs a {
+            color: #888;
+            text-decoration: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            transition: all 0.3s;
+        }
+        .nav-tabs a:hover { color: #fff; background: rgba(255,255,255,0.1); }
+        .nav-tabs a.active { color: #fff; background: #4472C4; }
+        
         .container {
             max-width: 1400px;
             margin: 0 auto;
@@ -187,13 +205,15 @@
 <body>
     <header class="header">
         <h1>🏭 AAT PoC Dashboard</h1>
-        <div class="subtitle">正崴產線資料查詢分析 | DB 驅動即時圖表 | PYLIB v3.18</div>
-        <div style="position: absolute; right: 40px; top: 20px; display: flex; gap: 10px;">
-            <a href="/query" style="background: rgba(255,255,255,0.2); padding: 8px 16px; border-radius: 8px; font-size: 14px; text-decoration: none; color: white;">💬 查詢</a>
-            <a href="/aoi" style="background: rgba(255,255,255,0.2); padding: 8px 16px; border-radius: 8px; font-size: 14px; text-decoration: none; color: white;">🔬 AOI</a>
-            <a href="/analysis" style="background: rgba(255,255,255,0.2); padding: 8px 16px; border-radius: 8px; font-size: 14px; text-decoration: none; color: white;">📈 分析</a>
-        </div>
+        <div class="subtitle">正崴產線資料查詢分析 | DB 驅動即時圖表 | v3.10</div>
     </header>
+    
+    <div class="nav-tabs">
+        <a href="/" class="active">📊 Dashboard</a>
+        <a href="/query">💬 查詢</a>
+        <a href="/aoi">🔬 AOI</a>
+        <a href="/analysis">📈 分析</a>
+    </div>
     
     <div class="container">
         <!-- Stats Cards -->

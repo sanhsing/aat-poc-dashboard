@@ -643,6 +643,10 @@ def api_zw_maintenance_alert():
     conn = get_zw_db()
     cursor = conn.cursor()
     
+    # 取得數據最大日期
+    cursor.execute("SELECT MAX(timestamp) FROM production_log")
+    max_date = cursor.fetchone()[0][:10]
+    
     # 運行時數分段統計
     cursor.execute("""
         SELECT 
@@ -679,13 +683,13 @@ def api_zw_maintenance_alert():
             "max": row['max_defect']
         })
     
-    # 當前需要維護的機台（>280h）
-    cursor.execute("""
+    # 當前需要維護的機台（>280h，最近7天）
+    cursor.execute(f"""
         SELECT machine_id,
                MAX(runtime_hours) as current_hours,
                ROUND(AVG(defect_rate) * 100, 2) as recent_defect
         FROM production_log
-        WHERE timestamp >= DATE('now', '-7 days')
+        WHERE DATE(timestamp) >= DATE('{max_date}', '-7 days')
         GROUP BY machine_id
         HAVING MAX(runtime_hours) > 280
         ORDER BY current_hours DESC
@@ -902,8 +906,12 @@ def api_zw_predictive_score():
     conn = get_zw_db()
     cursor = conn.cursor()
     
-    # 每台機台的健康指標
-    cursor.execute("""
+    # 取得數據最大日期（因為是歷史模擬數據）
+    cursor.execute("SELECT MAX(timestamp) FROM machine_status")
+    max_date = cursor.fetchone()[0][:10]  # 取日期部分
+    
+    # 每台機台的健康指標（最近7天）
+    cursor.execute(f"""
         SELECT 
             m.machine_id,
             MAX(m.runtime_hours) as runtime_hours,
@@ -911,7 +919,7 @@ def api_zw_predictive_score():
             AVG(m.vibration) as avg_vibration,
             MAX(m.maintenance_flag) as needs_maintenance
         FROM machine_status m
-        WHERE m.timestamp >= DATE('now', '-7 days')
+        WHERE DATE(m.timestamp) >= DATE('{max_date}', '-7 days')
         GROUP BY m.machine_id
     """)
     
