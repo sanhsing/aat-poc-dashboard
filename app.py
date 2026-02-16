@@ -346,6 +346,105 @@ def query():
     """查詢頁面 - LLM 風格"""
     return render_template('query.html')
 
+@app.route('/aoi')
+def aoi():
+    """AOI 門檻模擬頁面"""
+    return render_template('aoi.html')
+
+@app.route('/api/aoi_simulation')
+def api_aoi_simulation():
+    """
+    AOI 門檻模擬數據
+    基於 60天單線驗證設計
+    """
+    # DOE 模擬結果（基於簡報數據）
+    scenarios = [
+        {
+            "name": "嚴格",
+            "threshold": "240h",
+            "false_reject_rate": 2.0,
+            "escape_rate": 0.2,
+            "annual_cost": 182000,
+            "risk_level": "安全",
+            "risk_color": "#28a745"
+        },
+        {
+            "name": "標準",
+            "threshold": "250h",
+            "false_reject_rate": 1.0,
+            "escape_rate": 0.4,
+            "annual_cost": 168000,
+            "risk_level": "安全",
+            "risk_color": "#28a745"
+        },
+        {
+            "name": "微調",
+            "threshold": "260h",
+            "false_reject_rate": 0.7,
+            "escape_rate": 0.5,
+            "annual_cost": 158000,
+            "risk_level": "注意",
+            "risk_color": "#ffc107"
+        },
+        {
+            "name": "最佳點",
+            "threshold": "265h",
+            "false_reject_rate": 0.55,
+            "escape_rate": 0.55,
+            "annual_cost": 152000,
+            "risk_level": "注意",
+            "risk_color": "#ffc107",
+            "recommended": True
+        },
+        {
+            "name": "寬鬆",
+            "threshold": "270h",
+            "false_reject_rate": 0.4,
+            "escape_rate": 0.8,
+            "annual_cost": 151000,
+            "risk_level": "中等",
+            "risk_color": "#fd7e14"
+        },
+        {
+            "name": "激進",
+            "threshold": "280h",
+            "false_reject_rate": 0.25,
+            "escape_rate": 1.2,
+            "annual_cost": 156000,
+            "risk_level": "高",
+            "risk_color": "#dc3545"
+        }
+    ]
+    
+    # 計算節省金額
+    baseline_cost = scenarios[0]["annual_cost"]
+    for s in scenarios:
+        s["savings"] = baseline_cost - s["annual_cost"]
+        s["savings_pct"] = round((baseline_cost - s["annual_cost"]) / baseline_cost * 100, 1)
+    
+    # 回滾條件
+    rollback_rules = {
+        "trigger": "7 天內有 2 天 escape ≥ 2",
+        "action": "立即恢復原設定",
+        "notify": ["製造部", "品保", "管理層"]
+    }
+    
+    # 試驗參數
+    trial_params = {
+        "duration_days": 60,
+        "daily_output": 5000,
+        "scope": "單條產線",
+        "control_group": "其他產線維持原設定"
+    }
+    
+    return jsonify({
+        "scenarios": scenarios,
+        "rollback_rules": rollback_rules,
+        "trial_params": trial_params,
+        "recommended_scenario": "265h",
+        "recommendation": "微調至 265h，年省約 ¥3萬，外流風險可控"
+    })
+
 @app.route('/health')
 def health():
     """健康檢查"""

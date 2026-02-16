@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AOI 門檻模擬 | AAT PoC</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #fff;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .header {
+            text-align: center;
+            padding: 20px 0 30px;
+        }
+        .header h1 {
+            font-size: 2em;
+            margin-bottom: 8px;
+        }
+        .header p {
+            color: #888;
+            font-size: 0.95em;
+        }
+        .nav-tabs {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        .nav-tabs a {
+            color: #888;
+            text-decoration: none;
+            padding: 8px 20px;
+            border-radius: 20px;
+            transition: all 0.3s;
+        }
+        .nav-tabs a:hover {
+            color: #fff;
+            background: rgba(255,255,255,0.1);
+        }
+        .nav-tabs a.active {
+            color: #fff;
+            background: #4472C4;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        .grid-3 {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        .card {
+            background: rgba(255,255,255,0.05);
+            border-radius: 16px;
+            padding: 20px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .card h3 {
+            font-size: 1em;
+            color: #888;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .card h3::before {
+            content: '';
+            width: 4px;
+            height: 16px;
+            background: #4472C4;
+            border-radius: 2px;
+        }
+        .chart-container {
+            position: relative;
+            height: 300px;
+        }
+        
+        /* 情境卡片 */
+        .scenario-grid {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        .scenario-card {
+            background: rgba(255,255,255,0.03);
+            border-radius: 12px;
+            padding: 15px;
+            text-align: center;
+            border: 2px solid transparent;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .scenario-card:hover {
+            background: rgba(255,255,255,0.08);
+        }
+        .scenario-card.selected {
+            border-color: #4472C4;
+            background: rgba(68, 114, 196, 0.2);
+        }
+        .scenario-card.recommended {
+            border-color: #28a745;
+        }
+        .scenario-card .threshold {
+            font-size: 1.5em;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .scenario-card .name {
+            font-size: 0.85em;
+            color: #888;
+            margin-bottom: 10px;
+        }
+        .scenario-card .cost {
+            font-size: 1.1em;
+            color: #ffc107;
+        }
+        .scenario-card .savings {
+            font-size: 0.85em;
+            color: #28a745;
+        }
+        .scenario-card .risk-badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 10px;
+            font-size: 0.75em;
+            margin-top: 8px;
+        }
+        .recommend-tag {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background: #28a745;
+            color: #fff;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 0.7em;
+        }
+        .scenario-card-wrapper {
+            position: relative;
+        }
+        
+        /* 詳情面板 */
+        .detail-panel {
+            background: rgba(68, 114, 196, 0.1);
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 15px;
+        }
+        .detail-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+        }
+        .detail-item {
+            text-align: center;
+        }
+        .detail-item .label {
+            color: #888;
+            font-size: 0.85em;
+            margin-bottom: 5px;
+        }
+        .detail-item .value {
+            font-size: 1.5em;
+            font-weight: bold;
+        }
+        .detail-item .unit {
+            color: #888;
+            font-size: 0.8em;
+        }
+        
+        /* 回滾條件 */
+        .rollback-card {
+            background: rgba(220, 53, 69, 0.1);
+            border: 1px solid rgba(220, 53, 69, 0.3);
+        }
+        .rollback-trigger {
+            background: rgba(220, 53, 69, 0.2);
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            margin-bottom: 15px;
+        }
+        .rollback-trigger .condition {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #dc3545;
+        }
+        .rollback-flow {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+        }
+        .rollback-step {
+            text-align: center;
+        }
+        .rollback-step .icon {
+            font-size: 1.5em;
+            margin-bottom: 5px;
+        }
+        .rollback-step .text {
+            font-size: 0.85em;
+            color: #888;
+        }
+        .rollback-arrow {
+            color: #888;
+            font-size: 1.5em;
+        }
+        
+        /* 試驗參數 */
+        .params-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+        }
+        .param-item {
+            background: rgba(255,255,255,0.03);
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .param-item .icon {
+            font-size: 1.5em;
+            margin-bottom: 8px;
+        }
+        .param-item .value {
+            font-size: 1.2em;
+            font-weight: bold;
+            margin-bottom: 3px;
+        }
+        .param-item .label {
+            color: #888;
+            font-size: 0.85em;
+        }
+        
+        /* 建議區 */
+        .recommendation-box {
+            background: linear-gradient(135deg, rgba(40, 167, 69, 0.2) 0%, rgba(40, 167, 69, 0.1) 100%);
+            border: 1px solid rgba(40, 167, 69, 0.3);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            margin-top: 20px;
+        }
+        .recommendation-box h4 {
+            color: #28a745;
+            margin-bottom: 10px;
+        }
+        .recommendation-box p {
+            font-size: 1.1em;
+        }
+        
+        @media (max-width: 1200px) {
+            .scenario-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+        @media (max-width: 768px) {
+            .grid-2, .grid-3 {
+                grid-template-columns: 1fr;
+            }
+            .scenario-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .detail-grid, .params-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔬 AOI 門檻模擬</h1>
+            <p>60 天單線驗證 × 量化風險控制 × 回滾機制</p>
+        </div>
+        
+        <div class="nav-tabs">
+            <a href="/">📊 Dashboard</a>
+            <a href="/query">💬 智能查詢</a>
+            <a href="/aoi" class="active">🔬 AOI 模擬</a>
+        </div>
+        
+        <!-- 情境選擇 -->
+        <div class="card" style="margin-bottom: 20px;">
+            <h3>門檻設定比較</h3>
+            <div class="scenario-grid" id="scenarioGrid"></div>
+            
+            <div class="detail-panel" id="detailPanel">
+                <div class="detail-grid">
+                    <div class="detail-item">
+                        <div class="label">門檻值</div>
+                        <div class="value" id="detailThreshold">-</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="label">誤殺率</div>
+                        <div class="value" id="detailFalseReject">-</div>
+                        <div class="unit">%</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="label">漏檢率</div>
+                        <div class="value" id="detailEscape">-</div>
+                        <div class="unit">%</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="label">年化節省</div>
+                        <div class="value" id="detailSavings">-</div>
+                        <div class="unit">萬元</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="grid-2">
+            <!-- 成本對比圖 -->
+            <div class="card">
+                <h3>年化成本對比</h3>
+                <div class="chart-container">
+                    <canvas id="costChart"></canvas>
+                </div>
+            </div>
+            
+            <!-- 風險趨勢圖 -->
+            <div class="card">
+                <h3>誤殺率 vs 漏檢率</h3>
+                <div class="chart-container">
+                    <canvas id="riskChart"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <div class="grid-2">
+            <!-- 回滾條件 -->
+            <div class="card rollback-card">
+                <h3>⚠️ 回滾條件</h3>
+                <div class="rollback-trigger">
+                    <div class="condition" id="rollbackTrigger">-</div>
+                    <div style="color: #888; margin-top: 5px;">→ 立即恢復原設定</div>
+                </div>
+                <div class="rollback-flow">
+                    <div class="rollback-step">
+                        <div class="icon">🔍</div>
+                        <div class="text">偵測</div>
+                    </div>
+                    <div class="rollback-arrow">→</div>
+                    <div class="rollback-step">
+                        <div class="icon">📢</div>
+                        <div class="text">通報</div>
+                    </div>
+                    <div class="rollback-arrow">→</div>
+                    <div class="rollback-step">
+                        <div class="icon">↩️</div>
+                        <div class="text">回滾</div>
+                    </div>
+                    <div class="rollback-arrow">→</div>
+                    <div class="rollback-step">
+                        <div class="icon">📋</div>
+                        <div class="text">覆核</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 試驗參數 -->
+            <div class="card">
+                <h3>📋 試驗參數</h3>
+                <div class="params-grid">
+                    <div class="param-item">
+                        <div class="icon">⏱️</div>
+                        <div class="value" id="paramDuration">-</div>
+                        <div class="label">試驗天數</div>
+                    </div>
+                    <div class="param-item">
+                        <div class="icon">📦</div>
+                        <div class="value" id="paramOutput">-</div>
+                        <div class="label">日產量</div>
+                    </div>
+                    <div class="param-item">
+                        <div class="icon">🏭</div>
+                        <div class="value" id="paramScope">-</div>
+                        <div class="label">試驗範圍</div>
+                    </div>
+                    <div class="param-item">
+                        <div class="icon">📊</div>
+                        <div class="value">對照組</div>
+                        <div class="label">其他產線</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 建議 -->
+        <div class="recommendation-box" id="recommendationBox">
+            <h4>💡 建議方案</h4>
+            <p id="recommendationText">載入中...</p>
+        </div>
+    </div>
+    
+    <script>
+        let aoiData = null;
+        let costChart = null;
+        let riskChart = null;
+        let selectedIndex = 3; // 預設選擇「最佳點」
+        
+        // 載入數據
+        async function loadData() {
+            try {
+                const response = await fetch('/api/aoi_simulation');
+                aoiData = await response.json();
+                renderScenarios();
+                renderCharts();
+                renderParams();
+                selectScenario(selectedIndex);
+            } catch (error) {
+                console.error('Error loading data:', error);
+            }
+        }
+        
+        // 渲染情境卡片
+        function renderScenarios() {
+            const grid = document.getElementById('scenarioGrid');
+            grid.innerHTML = aoiData.scenarios.map((s, i) => `
+                <div class="scenario-card-wrapper">
+                    ${s.recommended ? '<div class="recommend-tag">推薦</div>' : ''}
+                    <div class="scenario-card ${s.recommended ? 'recommended' : ''}" onclick="selectScenario(${i})">
+                        <div class="threshold">${s.threshold}</div>
+                        <div class="name">${s.name}</div>
+                        <div class="cost">¥${(s.annual_cost/10000).toFixed(1)}萬</div>
+                        <div class="savings">${s.savings > 0 ? '+' : ''}¥${(s.savings/10000).toFixed(1)}萬</div>
+                        <div class="risk-badge" style="background: ${s.risk_color}20; color: ${s.risk_color}">
+                            ${s.risk_level}
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        // 選擇情境
+        function selectScenario(index) {
+            selectedIndex = index;
+            const s = aoiData.scenarios[index];
+            
+            // 更新選中狀態
+            document.querySelectorAll('.scenario-card').forEach((card, i) => {
+                card.classList.toggle('selected', i === index);
+            });
+            
+            // 更新詳情面板
+            document.getElementById('detailThreshold').textContent = s.threshold;
+            document.getElementById('detailFalseReject').textContent = s.false_reject_rate.toFixed(2);
+            document.getElementById('detailEscape').textContent = s.escape_rate.toFixed(2);
+            document.getElementById('detailSavings').textContent = (s.savings/10000).toFixed(1);
+            
+            // 更新圖表高亮
+            updateChartHighlight(index);
+        }
+        
+        // 渲染圖表
+        function renderCharts() {
+            const scenarios = aoiData.scenarios;
+            const labels = scenarios.map(s => s.threshold);
+            const costs = scenarios.map(s => s.annual_cost / 10000);
+            const falseRejects = scenarios.map(s => s.false_reject_rate);
+            const escapes = scenarios.map(s => s.escape_rate);
+            const colors = scenarios.map(s => s.risk_color);
+            
+            // 成本圖
+            const costCtx = document.getElementById('costChart').getContext('2d');
+            costChart = new Chart(costCtx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: '年化成本（萬元）',
+                        data: costs,
+                        backgroundColor: colors.map(c => c + '80'),
+                        borderColor: colors,
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            min: 14,
+                            ticks: { color: '#888' },
+                            grid: { color: 'rgba(255,255,255,0.1)' }
+                        },
+                        x: {
+                            ticks: { color: '#888' },
+                            grid: { display: false }
+                        }
+                    }
+                }
+            });
+            
+            // 風險圖
+            const riskCtx = document.getElementById('riskChart').getContext('2d');
+            riskChart = new Chart(riskCtx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: '誤殺率 (%)',
+                            data: falseRejects,
+                            borderColor: '#ED7D31',
+                            backgroundColor: 'rgba(237, 125, 49, 0.1)',
+                            fill: true,
+                            tension: 0.3
+                        },
+                        {
+                            label: '漏檢率 (%)',
+                            data: escapes,
+                            borderColor: '#4472C4',
+                            backgroundColor: 'rgba(68, 114, 196, 0.1)',
+                            fill: true,
+                            tension: 0.3
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            labels: { color: '#888' }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: { color: '#888' },
+                            grid: { color: 'rgba(255,255,255,0.1)' }
+                        },
+                        x: {
+                            ticks: { color: '#888' },
+                            grid: { display: false }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // 更新圖表高亮
+        function updateChartHighlight(index) {
+            // 可以在這裡添加更多的高亮效果
+        }
+        
+        // 渲染參數
+        function renderParams() {
+            const params = aoiData.trial_params;
+            document.getElementById('paramDuration').textContent = params.duration_days + '天';
+            document.getElementById('paramOutput').textContent = params.daily_output.toLocaleString();
+            document.getElementById('paramScope').textContent = params.scope;
+            
+            document.getElementById('rollbackTrigger').textContent = aoiData.rollback_rules.trigger;
+            document.getElementById('recommendationText').textContent = aoiData.recommendation;
+        }
+        
+        // 初始化
+        loadData();
+    </script>
+</body>
+</html>
