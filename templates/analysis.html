@@ -14,430 +14,493 @@
             min-height: 100vh;
             padding: 20px;
         }
-        .header { text-align: center; padding: 20px 0 30px; }
-        .header h1 { font-size: 2em; margin-bottom: 8px; }
-        .header p { color: #888; font-size: 0.95em; }
+        .header { text-align: center; padding: 20px 0 15px; }
+        .header h1 { font-size: 1.8em; margin-bottom: 5px; }
+        .header p { color: #888; font-size: 0.9em; }
         .nav-tabs {
             display: flex;
             justify-content: center;
-            gap: 15px;
-            margin-bottom: 30px;
+            gap: 12px;
+            margin-bottom: 20px;
         }
         .nav-tabs a {
             color: #888;
             text-decoration: none;
-            padding: 8px 20px;
+            padding: 8px 16px;
             border-radius: 20px;
+            font-size: 0.9em;
             transition: all 0.3s;
         }
         .nav-tabs a:hover { color: #fff; background: rgba(255,255,255,0.1); }
         .nav-tabs a.active { color: #fff; background: #4472C4; }
-        .container { max-width: 1400px; margin: 0 auto; }
+        .container { max-width: 1600px; margin: 0 auto; }
         
-        /* 統計卡片 */
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(5, 1fr);
-            gap: 15px;
+        /* Tab 切換 */
+        .tab-nav {
+            display: flex;
+            gap: 10px;
             margin-bottom: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
         }
-        .stat-card {
+        .tab-btn {
+            padding: 10px 20px;
             background: rgba(255,255,255,0.05);
-            border-radius: 12px;
-            padding: 20px;
-            text-align: center;
             border: 1px solid rgba(255,255,255,0.1);
-        }
-        .stat-card .value {
-            font-size: 1.8em;
-            font-weight: bold;
-            color: #4472C4;
-        }
-        .stat-card .label {
+            border-radius: 8px;
             color: #888;
-            font-size: 0.85em;
-            margin-top: 5px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 0.9em;
         }
+        .tab-btn:hover { background: rgba(255,255,255,0.1); color: #fff; }
+        .tab-btn.active { background: #4472C4; color: #fff; border-color: #4472C4; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
         
-        /* 圖表區 */
-        .grid-2 {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-            margin-bottom: 20px;
-        }
+        /* 通用卡片 */
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px; }
+        .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 15px; }
+        .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 15px; }
         .card {
             background: rgba(255,255,255,0.05);
-            border-radius: 16px;
-            padding: 20px;
+            border-radius: 12px;
+            padding: 15px;
             border: 1px solid rgba(255,255,255,0.1);
         }
         .card h3 {
-            font-size: 1em;
+            font-size: 0.95em;
             color: #888;
-            margin-bottom: 15px;
+            margin-bottom: 12px;
             display: flex;
             align-items: center;
             gap: 8px;
         }
         .card h3::before {
             content: '';
-            width: 4px;
-            height: 16px;
+            width: 3px;
+            height: 14px;
             background: #4472C4;
             border-radius: 2px;
         }
-        .chart-container {
-            position: relative;
-            height: 280px;
-        }
+        .chart-container { position: relative; height: 250px; }
         
-        /* 排名表格 */
-        .ranking-table {
+        /* 統計卡片 */
+        .stat-card {
+            background: rgba(255,255,255,0.05);
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .stat-card .value { font-size: 1.6em; font-weight: bold; color: #4472C4; }
+        .stat-card .label { color: #888; font-size: 0.8em; margin-top: 3px; }
+        .stat-card.alert .value { color: #dc3545; }
+        .stat-card.warning .value { color: #ffc107; }
+        .stat-card.success .value { color: #28a745; }
+        
+        /* 警示卡片 */
+        .alert-card {
+            background: rgba(220, 53, 69, 0.1);
+            border: 1px solid rgba(220, 53, 69, 0.3);
+            border-radius: 10px;
+            padding: 12px;
+            margin-bottom: 10px;
+        }
+        .alert-card.warning {
+            background: rgba(255, 193, 7, 0.1);
+            border-color: rgba(255, 193, 7, 0.3);
+        }
+        .alert-card .machine { font-weight: bold; font-size: 1.1em; }
+        .alert-card .detail { color: #888; font-size: 0.85em; margin-top: 5px; }
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 0.7em;
+            font-weight: bold;
+        }
+        .badge-critical { background: #dc3545; color: #fff; }
+        .badge-high { background: #fd7e14; color: #fff; }
+        .badge-medium { background: #ffc107; color: #000; }
+        .badge-low { background: #28a745; color: #fff; }
+        
+        /* 表格 */
+        .data-table {
             width: 100%;
             border-collapse: collapse;
+            font-size: 0.85em;
         }
-        .ranking-table th, .ranking-table td {
-            padding: 10px;
+        .data-table th, .data-table td {
+            padding: 10px 8px;
             text-align: left;
             border-bottom: 1px solid rgba(255,255,255,0.1);
         }
-        .ranking-table th {
-            color: #888;
-            font-weight: normal;
-            font-size: 0.85em;
+        .data-table th { color: #888; font-weight: normal; font-size: 0.85em; }
+        .data-table tr:hover td { background: rgba(255,255,255,0.03); }
+        
+        /* 評分卡 */
+        .score-card {
+            background: rgba(255,255,255,0.03);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
-        .ranking-table tr:hover {
-            background: rgba(255,255,255,0.05);
-        }
-        .rank-badge {
-            display: inline-block;
-            width: 24px;
-            height: 24px;
-            line-height: 24px;
-            text-align: center;
+        .score-card .info { flex: 1; }
+        .score-card .name { font-weight: bold; font-size: 1.1em; }
+        .score-card .metrics { color: #888; font-size: 0.85em; margin-top: 5px; }
+        .score-card .grade {
+            width: 50px;
+            height: 50px;
             border-radius: 50%;
-            font-size: 0.8em;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5em;
             font-weight: bold;
         }
-        .rank-1 { background: #ffd700; color: #000; }
-        .rank-2 { background: #c0c0c0; color: #000; }
-        .rank-3 { background: #cd7f32; color: #fff; }
-        .rank-other { background: rgba(255,255,255,0.1); }
+        .grade-A { background: #28a745; color: #fff; }
+        .grade-B { background: #4472C4; color: #fff; }
+        .grade-C { background: #ffc107; color: #000; }
+        .grade-D { background: #dc3545; color: #fff; }
         
-        /* 熱力圖 */
-        .heatmap-grid {
-            display: grid;
-            gap: 4px;
+        /* 洞見框 */
+        .insight-box {
+            background: linear-gradient(135deg, rgba(68, 114, 196, 0.2), rgba(68, 114, 196, 0.1));
+            border: 1px solid rgba(68, 114, 196, 0.3);
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 15px;
         }
-        .heatmap-cell {
-            padding: 12px;
-            text-align: center;
-            border-radius: 6px;
-            font-size: 0.9em;
-        }
-        .heatmap-header {
-            color: #888;
-            font-size: 0.85em;
-            padding: 8px;
-        }
-        
-        /* 數據來源標籤 */
-        .data-source {
-            text-align: right;
-            color: #666;
-            font-size: 0.75em;
-            margin-top: 10px;
-        }
+        .insight-box .icon { font-size: 1.2em; margin-right: 10px; }
+        .insight-box .text { color: #aaa; font-size: 0.9em; }
         
         @media (max-width: 1200px) {
-            .stats-grid { grid-template-columns: repeat(3, 1fr); }
+            .grid-4 { grid-template-columns: repeat(2, 1fr); }
+            .grid-3 { grid-template-columns: 1fr 1fr; }
         }
         @media (max-width: 768px) {
-            .stats-grid { grid-template-columns: repeat(2, 1fr); }
-            .grid-2 { grid-template-columns: 1fr; }
+            .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+            .tab-nav { flex-direction: column; }
         }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>📈 深度分析</h1>
-            <p>60 天批次級數據 × 108,000 筆生產記錄</p>
+            <h1>📈 深度分析中心</h1>
+            <p>XTF 消-拓-融 | 60天 × 108,000筆 × 7維度分析 | @11星協作</p>
         </div>
         
         <div class="nav-tabs">
             <a href="/">📊 Dashboard</a>
-            <a href="/query">💬 智能查詢</a>
-            <a href="/aoi">🔬 AOI 模擬</a>
-            <a href="/analysis" class="active">📈 深度分析</a>
+            <a href="/query">💬 查詢</a>
+            <a href="/aoi">🔬 AOI</a>
+            <a href="/analysis" class="active">📈 分析</a>
         </div>
         
-        <!-- 統計卡片 -->
-        <div class="stats-grid" id="statsGrid">
-            <div class="stat-card">
-                <div class="value" id="statBatch">-</div>
-                <div class="label">批次數</div>
+        <!-- Tab 導航 -->
+        <div class="tab-nav">
+            <button class="tab-btn active" onclick="showTab('overview')">📊 總覽</button>
+            <button class="tab-btn" onclick="showTab('maintenance')">🔧 維護警示</button>
+            <button class="tab-btn" onclick="showTab('temperature')">🌡️ 溫度分析</button>
+            <button class="tab-btn" onclick="showTab('cost')">💰 成本損失</button>
+            <button class="tab-btn" onclick="showTab('supplier')">🏭 供應商</button>
+            <button class="tab-btn" onclick="showTab('predictive')">🔮 預測維護</button>
+        </div>
+        
+        <!-- 總覽 Tab -->
+        <div id="tab-overview" class="tab-content active">
+            <div class="grid-4" id="overviewStats"></div>
+            <div class="grid-2">
+                <div class="card">
+                    <h3>良率趨勢（日維度）</h3>
+                    <div class="chart-container"><canvas id="yieldTrendChart"></canvas></div>
+                </div>
+                <div class="card">
+                    <h3>產線績效比較</h3>
+                    <div class="chart-container"><canvas id="linePerformanceChart"></canvas></div>
+                </div>
             </div>
-            <div class="stat-card">
-                <div class="value" id="statLine">-</div>
-                <div class="label">產線數</div>
-            </div>
-            <div class="stat-card">
-                <div class="value" id="statOutput">-</div>
-                <div class="label">總產量</div>
-            </div>
-            <div class="stat-card">
-                <div class="value" id="statYield">-</div>
-                <div class="label">平均良率</div>
-            </div>
-            <div class="stat-card">
-                <div class="value" id="statDays">-</div>
-                <div class="label">數據天數</div>
+            <div class="grid-2">
+                <div class="card">
+                    <h3>不良率熱力圖（產線×班次）</h3>
+                    <div id="heatmapContainer"></div>
+                </div>
+                <div class="card">
+                    <h3>操作員 Top 10</h3>
+                    <table class="data-table" id="operatorTable">
+                        <thead><tr><th>#</th><th>操作員</th><th>批次</th><th>良率</th></tr></thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
             </div>
         </div>
         
-        <!-- 圖表區 -->
-        <div class="grid-2">
-            <div class="card">
-                <h3>良率趨勢（日維度）</h3>
-                <div class="chart-container">
-                    <canvas id="yieldTrendChart"></canvas>
+        <!-- 維護警示 Tab -->
+        <div id="tab-maintenance" class="tab-content">
+            <div class="grid-4" id="maintenanceStats"></div>
+            <div class="grid-2">
+                <div class="card">
+                    <h3>運行時數 vs 不良率</h3>
+                    <div class="chart-container"><canvas id="runtimeChart"></canvas></div>
+                </div>
+                <div class="card">
+                    <h3>⚠️ 需維護機台</h3>
+                    <div id="maintenanceAlerts"></div>
                 </div>
             </div>
-            <div class="card">
-                <h3>產線績效比較</h3>
-                <div class="chart-container">
-                    <canvas id="linePerformanceChart"></canvas>
-                </div>
+            <div class="insight-box">
+                <span class="icon">💡</span>
+                <span class="text" id="maintenanceInsight">載入中...</span>
             </div>
         </div>
         
-        <div class="grid-2">
-            <div class="card">
-                <h3>供應商品質排名</h3>
-                <div class="chart-container">
-                    <canvas id="supplierChart"></canvas>
+        <!-- 溫度分析 Tab -->
+        <div id="tab-temperature" class="tab-content">
+            <div class="grid-2">
+                <div class="card">
+                    <h3>溫度區間 vs 不良率</h3>
+                    <div class="chart-container"><canvas id="tempRangeChart"></canvas></div>
+                </div>
+                <div class="card">
+                    <h3>各產線溫度分佈</h3>
+                    <div class="chart-container"><canvas id="lineTempChart"></canvas></div>
                 </div>
             </div>
+            <div class="insight-box">
+                <span class="icon">🌡️</span>
+                <span class="text" id="tempInsight">載入中...</span>
+            </div>
+        </div>
+        
+        <!-- 成本損失 Tab -->
+        <div id="tab-cost" class="tab-content">
+            <div class="grid-3" id="costStats"></div>
+            <div class="grid-2">
+                <div class="card">
+                    <h3>各產線損失</h3>
+                    <div class="chart-container"><canvas id="lineLossChart"></canvas></div>
+                </div>
+                <div class="card">
+                    <h3>各供應商造成損失</h3>
+                    <div class="chart-container"><canvas id="supplierLossChart"></canvas></div>
+                </div>
+            </div>
+            <div class="insight-box">
+                <span class="icon">💰</span>
+                <span class="text" id="costInsight">載入中...</span>
+            </div>
+        </div>
+        
+        <!-- 供應商 Tab -->
+        <div id="tab-supplier" class="tab-content">
             <div class="card">
-                <h3>操作員 Top 10</h3>
-                <table class="ranking-table" id="operatorTable">
-                    <thead>
-                        <tr>
-                            <th>#</th>
-                            <th>操作員</th>
-                            <th>批次數</th>
-                            <th>良率</th>
-                            <th>週期</th>
-                        </tr>
-                    </thead>
+                <h3>供應商評分卡（品質60% + 成本20% + 交期20%）</h3>
+                <div id="supplierScorecards"></div>
+            </div>
+            <div class="insight-box">
+                <span class="icon">🏭</span>
+                <span class="text" id="supplierInsight">載入中...</span>
+            </div>
+        </div>
+        
+        <!-- 預測維護 Tab -->
+        <div id="tab-predictive" class="tab-content">
+            <div class="grid-4" id="predictiveStats"></div>
+            <div class="card">
+                <h3>機台健康度排名（需優先關注）</h3>
+                <table class="data-table" id="healthTable">
+                    <thead><tr><th>機台</th><th>運行時數</th><th>溫度</th><th>振動</th><th>健康分</th><th>風險</th><th>建議</th></tr></thead>
                     <tbody></tbody>
                 </table>
             </div>
-        </div>
-        
-        <div class="card">
-            <h3>不良率熱力圖（產線 × 班次）</h3>
-            <div id="heatmapContainer"></div>
-            <div class="data-source">數據來源：zw_poc_fake_60d.db | 108,000 筆生產記錄</div>
+            <div class="insight-box">
+                <span class="icon">🔮</span>
+                <span class="text" id="predictiveInsight">載入中...</span>
+            </div>
         </div>
     </div>
     
     <script>
-        // 載入統計數據
-        async function loadStats() {
-            try {
-                const res = await fetch('/api/zw_stats');
-                const data = await res.json();
-                document.getElementById('statBatch').textContent = data.batch_count;
-                document.getElementById('statLine').textContent = data.line_count;
-                document.getElementById('statOutput').textContent = data.total_output;
-                document.getElementById('statYield').textContent = data.yield_rate + '%';
-                document.getElementById('statDays').textContent = data.day_count;
-            } catch (e) { console.error(e); }
+        // Tab 切換
+        function showTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('tab-' + tabId).classList.add('active');
+            event.target.classList.add('active');
         }
         
-        // 良率趨勢圖
-        async function loadYieldTrend() {
-            try {
-                const res = await fetch('/api/zw_yield_trend');
-                const data = await res.json();
-                
-                new Chart(document.getElementById('yieldTrendChart'), {
-                    type: 'line',
-                    data: {
-                        labels: data.labels,
-                        datasets: [{
-                            label: '良率 (%)',
-                            data: data.yield_data,
-                            borderColor: '#4472C4',
-                            backgroundColor: 'rgba(68, 114, 196, 0.1)',
-                            fill: true,
-                            tension: 0.3
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: { legend: { display: false } },
-                        scales: {
-                            y: {
-                                min: 95,
-                                max: 100,
-                                ticks: { color: '#888' },
-                                grid: { color: 'rgba(255,255,255,0.1)' }
-                            },
-                            x: {
-                                ticks: { color: '#888', maxTicksLimit: 10 },
-                                grid: { display: false }
-                            }
-                        }
-                    }
+        // 通用圖表配置
+        const chartConfig = {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { labels: { color: '#888' } } },
+            scales: {
+                y: { ticks: { color: '#888' }, grid: { color: 'rgba(255,255,255,0.1)' } },
+                x: { ticks: { color: '#888' }, grid: { display: false } }
+            }
+        };
+        
+        // 載入總覽
+        async function loadOverview() {
+            const stats = await fetch('/api/zw_stats').then(r => r.json());
+            document.getElementById('overviewStats').innerHTML = `
+                <div class="stat-card"><div class="value">${stats.batch_count}</div><div class="label">批次數</div></div>
+                <div class="stat-card"><div class="value">${stats.line_count}</div><div class="label">產線</div></div>
+                <div class="stat-card"><div class="value">${stats.yield_rate}%</div><div class="label">平均良率</div></div>
+                <div class="stat-card"><div class="value">${stats.day_count}</div><div class="label">數據天數</div></div>
+            `;
+            
+            const trend = await fetch('/api/zw_yield_trend').then(r => r.json());
+            new Chart(document.getElementById('yieldTrendChart'), {
+                type: 'line',
+                data: { labels: trend.labels, datasets: [{ label: '良率%', data: trend.yield_data, borderColor: '#4472C4', backgroundColor: 'rgba(68,114,196,0.1)', fill: true, tension: 0.3 }] },
+                options: { ...chartConfig, scales: { ...chartConfig.scales, y: { ...chartConfig.scales.y, min: 80, max: 100 } } }
+            });
+            
+            const perf = await fetch('/api/zw_line_performance').then(r => r.json());
+            new Chart(document.getElementById('linePerformanceChart'), {
+                type: 'bar',
+                data: { labels: perf.labels, datasets: [{ label: '良率%', data: perf.yield_data, backgroundColor: perf.yield_data.map(v => v >= 90 ? '#28a745' : v >= 85 ? '#ffc107' : '#dc3545'), borderRadius: 4 }] },
+                options: { ...chartConfig, plugins: { legend: { display: false } }, scales: { ...chartConfig.scales, y: { ...chartConfig.scales.y, min: 80 } } }
+            });
+            
+            const heatmap = await fetch('/api/zw_defect_heatmap').then(r => r.json());
+            let html = '<div style="display:grid;grid-template-columns:auto repeat(' + heatmap.shifts.length + ',1fr);gap:3px;font-size:0.8em">';
+            html += '<div></div>' + heatmap.shifts.map(s => `<div style="text-align:center;color:#888">班${s}</div>`).join('');
+            heatmap.lines.forEach(line => {
+                html += `<div style="color:#888">${line}</div>`;
+                heatmap.shifts.forEach(shift => {
+                    const item = heatmap.data.find(d => d.line === line && d.shift === shift);
+                    const rate = item ? item.defect_rate : 0;
+                    const color = rate < 10 ? '#28a745' : rate < 15 ? '#ffc107' : '#dc3545';
+                    html += `<div style="background:${color}20;color:${color};padding:8px;text-align:center;border-radius:4px">${rate}%</div>`;
                 });
-            } catch (e) { console.error(e); }
+            });
+            document.getElementById('heatmapContainer').innerHTML = html + '</div>';
+            
+            const ops = await fetch('/api/zw_operator_ranking').then(r => r.json());
+            document.querySelector('#operatorTable tbody').innerHTML = ops.top.map((o, i) => `
+                <tr><td>${i+1}</td><td>${o.operator_id}</td><td>${o.batch_count}</td><td style="color:${o.yield_rate>=90?'#28a745':'#ffc107'}">${o.yield_rate}%</td></tr>
+            `).join('');
         }
         
-        // 產線績效
-        async function loadLinePerformance() {
-            try {
-                const res = await fetch('/api/zw_line_performance');
-                const data = await res.json();
-                
-                new Chart(document.getElementById('linePerformanceChart'), {
-                    type: 'bar',
-                    data: {
-                        labels: data.labels,
-                        datasets: [{
-                            label: '良率 (%)',
-                            data: data.yield_data,
-                            backgroundColor: data.yield_data.map(v => 
-                                v >= 98 ? '#28a745' : v >= 96 ? '#ffc107' : '#dc3545'
-                            ),
-                            borderRadius: 4
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: { legend: { display: false } },
-                        scales: {
-                            y: {
-                                min: 94,
-                                max: 100,
-                                ticks: { color: '#888' },
-                                grid: { color: 'rgba(255,255,255,0.1)' }
-                            },
-                            x: {
-                                ticks: { color: '#888' },
-                                grid: { display: false }
-                            }
-                        }
-                    }
-                });
-            } catch (e) { console.error(e); }
+        // 載入維護警示
+        async function loadMaintenance() {
+            const data = await fetch('/api/zw_maintenance_alert').then(r => r.json());
+            document.getElementById('maintenanceStats').innerHTML = `
+                <div class="stat-card alert"><div class="value">${data.maintenance_alerts.length}</div><div class="label">需維護機台</div></div>
+                <div class="stat-card warning"><div class="value">${data.threshold}h</div><div class="label">維護臨界點</div></div>
+                <div class="stat-card"><div class="value">${data.runtime_analysis[3]?.defect_rate || '-'}%</div><div class="label">>300h 不良率</div></div>
+                <div class="stat-card success"><div class="value">${data.runtime_analysis[0]?.defect_rate || '-'}%</div><div class="label"><100h 不良率</div></div>
+            `;
+            new Chart(document.getElementById('runtimeChart'), {
+                type: 'bar',
+                data: { labels: data.runtime_analysis.map(r => r.range), datasets: [{ label: '不良率%', data: data.runtime_analysis.map(r => r.defect_rate), backgroundColor: data.runtime_analysis.map(r => r.defect_rate > 10 ? '#dc3545' : r.defect_rate > 5 ? '#ffc107' : '#28a745'), borderRadius: 4 }] },
+                options: { ...chartConfig, plugins: { legend: { display: false } } }
+            });
+            document.getElementById('maintenanceAlerts').innerHTML = data.maintenance_alerts.slice(0, 6).map(a => `
+                <div class="alert-card ${a.urgency === 'HIGH' ? '' : 'warning'}">
+                    <span class="machine">${a.machine_id}</span>
+                    <span class="badge badge-${a.urgency.toLowerCase()}">${a.urgency}</span>
+                    <div class="detail">運行 ${a.runtime_hours}h | 近期不良 ${a.recent_defect}%</div>
+                </div>
+            `).join('') || '<div style="color:#888;text-align:center;padding:20px">無需維護的機台</div>';
+            document.getElementById('maintenanceInsight').textContent = data.insight;
         }
         
-        // 供應商品質
-        async function loadSupplierQuality() {
-            try {
-                const res = await fetch('/api/zw_supplier_quality');
-                const data = await res.json();
-                
-                new Chart(document.getElementById('supplierChart'), {
-                    type: 'bar',
-                    data: {
-                        labels: data.labels,
-                        datasets: [{
-                            label: '良率 (%)',
-                            data: data.yield_data,
-                            backgroundColor: '#ED7D31',
-                            borderRadius: 4
-                        }]
-                    },
-                    options: {
-                        indexAxis: 'y',
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: { legend: { display: false } },
-                        scales: {
-                            x: {
-                                min: 95,
-                                max: 100,
-                                ticks: { color: '#888' },
-                                grid: { color: 'rgba(255,255,255,0.1)' }
-                            },
-                            y: {
-                                ticks: { color: '#888' },
-                                grid: { display: false }
-                            }
-                        }
-                    }
-                });
-            } catch (e) { console.error(e); }
+        // 載入溫度分析
+        async function loadTemperature() {
+            const data = await fetch('/api/zw_temp_analysis').then(r => r.json());
+            new Chart(document.getElementById('tempRangeChart'), {
+                type: 'bar',
+                data: { labels: data.temp_ranges.map(t => t.temp_range), datasets: [{ label: '不良率%', data: data.temp_ranges.map(t => t.avg_defect_pct), backgroundColor: data.temp_ranges.map(t => t.avg_defect_pct > 10 ? '#dc3545' : t.avg_defect_pct > 5 ? '#ffc107' : '#28a745'), borderRadius: 4 }] },
+                options: { ...chartConfig, plugins: { legend: { display: false } } }
+            });
+            new Chart(document.getElementById('lineTempChart'), {
+                type: 'scatter',
+                data: { datasets: [{ label: '產線', data: data.line_temperature.map(l => ({ x: l.avg_temp, y: l.avg_defect })), backgroundColor: '#4472C4', pointRadius: 8 }] },
+                options: { ...chartConfig, scales: { x: { ...chartConfig.scales.x, title: { display: true, text: '溫度°C', color: '#888' } }, y: { ...chartConfig.scales.y, title: { display: true, text: '不良率%', color: '#888' } } } }
+            });
+            document.getElementById('tempInsight').textContent = data.insight;
         }
         
-        // 操作員排名
-        async function loadOperatorRanking() {
-            try {
-                const res = await fetch('/api/zw_operator_ranking');
-                const data = await res.json();
-                
-                const tbody = document.querySelector('#operatorTable tbody');
-                tbody.innerHTML = data.top.map((op, i) => `
-                    <tr>
-                        <td><span class="rank-badge ${i < 3 ? 'rank-' + (i+1) : 'rank-other'}">${i+1}</span></td>
-                        <td>${op.operator_id}</td>
-                        <td>${op.batch_count}</td>
-                        <td style="color: ${op.yield_rate >= 98 ? '#28a745' : '#ffc107'}">${op.yield_rate}%</td>
-                        <td>${op.cycle_time}s</td>
-                    </tr>
-                `).join('');
-            } catch (e) { console.error(e); }
+        // 載入成本分析
+        async function loadCost() {
+            const data = await fetch('/api/zw_cost_analysis').then(r => r.json());
+            document.getElementById('costStats').innerHTML = `
+                <div class="stat-card alert"><div class="value">¥${(data.total_loss_60d/10000).toFixed(1)}萬</div><div class="label">60天損失</div></div>
+                <div class="stat-card warning"><div class="value">¥${(data.total_loss_annual/10000).toFixed(1)}萬</div><div class="label">年化損失</div></div>
+                <div class="stat-card"><div class="value">${data.line_loss.length}</div><div class="label">產線數</div></div>
+            `;
+            new Chart(document.getElementById('lineLossChart'), {
+                type: 'bar',
+                data: { labels: data.line_loss.map(l => l.line_id), datasets: [{ label: '損失(元)', data: data.line_loss.map(l => l.loss_60d), backgroundColor: '#dc3545', borderRadius: 4 }] },
+                options: { ...chartConfig, plugins: { legend: { display: false } } }
+            });
+            new Chart(document.getElementById('supplierLossChart'), {
+                type: 'bar',
+                data: { labels: data.supplier_loss.map(s => s.supplier_id), datasets: [{ label: '損失(元)', data: data.supplier_loss.map(s => s.loss_60d), backgroundColor: '#fd7e14', borderRadius: 4 }] },
+                options: { ...chartConfig, indexAxis: 'y', plugins: { legend: { display: false } } }
+            });
+            document.getElementById('costInsight').textContent = data.insight;
         }
         
-        // 熱力圖
-        async function loadHeatmap() {
-            try {
-                const res = await fetch('/api/zw_defect_heatmap');
-                const data = await res.json();
-                
-                const container = document.getElementById('heatmapContainer');
-                const lines = data.lines;
-                const shifts = data.shifts;
-                
-                // 創建網格
-                let html = '<div class="heatmap-grid" style="grid-template-columns: auto repeat(' + shifts.length + ', 1fr)">';
-                
-                // 表頭
-                html += '<div class="heatmap-header"></div>';
-                shifts.forEach(s => {
-                    html += `<div class="heatmap-header">班次 ${s}</div>`;
-                });
-                
-                // 數據行
-                lines.forEach(line => {
-                    html += `<div class="heatmap-header">${line}</div>`;
-                    shifts.forEach(shift => {
-                        const item = data.data.find(d => d.line === line && d.shift === shift);
-                        const rate = item ? item.defect_rate : 0;
-                        const color = rate < 2 ? '#28a745' : rate < 3 ? '#ffc107' : '#dc3545';
-                        html += `<div class="heatmap-cell" style="background: ${color}20; color: ${color}">${rate}%</div>`;
-                    });
-                });
-                
-                html += '</div>';
-                container.innerHTML = html;
-            } catch (e) { console.error(e); }
+        // 載入供應商評分
+        async function loadSupplier() {
+            const data = await fetch('/api/zw_supplier_scorecard').then(r => r.json());
+            document.getElementById('supplierScorecards').innerHTML = data.scorecards.map(s => `
+                <div class="score-card">
+                    <div class="info">
+                        <div class="name">${s.supplier_id} - ${s.supplier_name}</div>
+                        <div class="metrics">良率 ${s.yield_rate}% | 成本係數 ${s.cost_multiplier} | 週期 ${s.avg_cycle}s</div>
+                        <div style="margin-top:8px;display:flex;gap:15px;font-size:0.8em">
+                            <span>品質 <strong>${s.quality_score}</strong></span>
+                            <span>成本 <strong>${s.cost_score}</strong></span>
+                            <span>交期 <strong>${s.delivery_score}</strong></span>
+                            <span>總分 <strong style="color:#4472C4">${s.total_score}</strong></span>
+                        </div>
+                    </div>
+                    <div class="grade grade-${s.grade}">${s.grade}</div>
+                </div>
+            `).join('');
+            document.getElementById('supplierInsight').textContent = data.insight;
+        }
+        
+        // 載入預測維護
+        async function loadPredictive() {
+            const data = await fetch('/api/zw_predictive_score').then(r => r.json());
+            document.getElementById('predictiveStats').innerHTML = `
+                <div class="stat-card alert"><div class="value">${data.critical_count}</div><div class="label">CRITICAL</div></div>
+                <div class="stat-card warning"><div class="value">${data.high_count}</div><div class="label">HIGH</div></div>
+                <div class="stat-card"><div class="value">${data.machine_health.length}</div><div class="label">監控機台</div></div>
+                <div class="stat-card success"><div class="value">${data.weights.runtime}/${data.weights.temperature}/${data.weights.vibration}</div><div class="label">權重配比</div></div>
+            `;
+            document.querySelector('#healthTable tbody').innerHTML = data.machine_health.map(m => `
+                <tr>
+                    <td><strong>${m.machine_id}</strong></td>
+                    <td>${m.runtime_hours}h</td>
+                    <td>${m.avg_temp}°C</td>
+                    <td>${m.avg_vibration}</td>
+                    <td><strong style="color:${m.health_score<50?'#dc3545':m.health_score<70?'#ffc107':'#28a745'}">${m.health_score}</strong></td>
+                    <td><span class="badge badge-${m.risk_level.toLowerCase()}">${m.risk_level}</span></td>
+                    <td style="color:#888">${m.recommendation}</td>
+                </tr>
+            `).join('');
+            document.getElementById('predictiveInsight').textContent = data.insight;
         }
         
         // 初始化
-        loadStats();
-        loadYieldTrend();
-        loadLinePerformance();
-        loadSupplierQuality();
-        loadOperatorRanking();
-        loadHeatmap();
+        loadOverview();
+        loadMaintenance();
+        loadTemperature();
+        loadCost();
+        loadSupplier();
+        loadPredictive();
     </script>
 </body>
 </html>

@@ -633,6 +633,356 @@ def api_zw_defect_heatmap():
         "data": data
     })
 
+# ============================================================
+# 進階分析 API（XTF 拓展層）@織明 @理樞
+# ============================================================
+
+@app.route('/api/zw_maintenance_alert')
+def api_zw_maintenance_alert():
+    """300h 維護警示 - 運行時數臨界點分析"""
+    conn = get_zw_db()
+    cursor = conn.cursor()
+    
+    # 運行時數分段統計
+    cursor.execute("""
+        SELECT 
+            CASE 
+                WHEN runtime_hours < 100 THEN '0-100h'
+                WHEN runtime_hours < 200 THEN '100-200h'
+                WHEN runtime_hours < 300 THEN '200-300h'
+                WHEN runtime_hours < 400 THEN '300-400h'
+                ELSE '>400h'
+            END as runtime_range,
+            COUNT(*) as batch_count,
+            ROUND(AVG(defect_rate) * 100, 2) as avg_defect_pct,
+            ROUND(MIN(defect_rate) * 100, 2) as min_defect,
+            ROUND(MAX(defect_rate) * 100, 2) as max_defect
+        FROM production_log
+        GROUP BY runtime_range
+        ORDER BY 
+            CASE runtime_range
+                WHEN '0-100h' THEN 1
+                WHEN '100-200h' THEN 2
+                WHEN '200-300h' THEN 3
+                WHEN '300-400h' THEN 4
+                ELSE 5
+            END
+    """)
+    
+    runtime_data = []
+    for row in cursor.fetchall():
+        runtime_data.append({
+            "range": row['runtime_range'],
+            "batch_count": row['batch_count'],
+            "defect_rate": row['avg_defect_pct'],
+            "min": row['min_defect'],
+            "max": row['max_defect']
+        })
+    
+    # 當前需要維護的機台（>280h）
+    cursor.execute("""
+        SELECT machine_id,
+               MAX(runtime_hours) as current_hours,
+               ROUND(AVG(defect_rate) * 100, 2) as recent_defect
+        FROM production_log
+        WHERE timestamp >= DATE('now', '-7 days')
+        GROUP BY machine_id
+        HAVING MAX(runtime_hours) > 280
+        ORDER BY current_hours DESC
+    """)
+    
+    alerts = []
+    for row in cursor.fetchall():
+        alerts.append({
+            "machine_id": row['machine_id'],
+            "runtime_hours": round(row['current_hours'], 1),
+            "recent_defect": row['recent_defect'],
+            "urgency": "HIGH" if row['current_hours'] > 350 else "MEDIUM"
+        })
+    
+    conn.close()
+    
+    return jsonify({
+        "runtime_analysis": runtime_data,
+        "maintenance_alerts": alerts,
+        "threshold": 300,
+        "insight": "300h 後不良率急升至 17.9%，建議在此前進行預防性維護"
+    })
+
+@app.route('/api/zw_temp_analysis')
+def api_zw_temp_analysis():
+    """溫度-不良率相關性分析"""
+    conn = get_zw_db()
+    cursor = conn.cursor()
+    
+    # 溫度分段
+    cursor.execute("""
+        SELECT 
+            CASE 
+                WHEN temperature < 62 THEN '<62°C'
+                WHEN temperature < 64 THEN '62-64°C'
+                WHEN temperature < 66 THEN '64-66°C'
+                WHEN temperature < 68 THEN '66-68°C'
+                ELSE '>68°C'
+            END as temp_range,
+            COUNT(*) as batch_count,
+            ROUND(AVG(defect_rate) * 100, 2) as avg_defect_pct
+        FROM production_log
+        GROUP BY temp_range
+        ORDER BY 
+            CASE temp_range
+                WHEN '<62°C' THEN 1
+                WHEN '62-64°C' THEN 2
+                WHEN '64-66°C' THEN 3
+                WHEN '66-68°C' THEN 4
+                ELSE 5
+            END
+    """)
+    
+    temp_data = [dict(row) for row in cursor.fetchall()]
+    
+    # 產線溫度分佈
+    cursor.execute("""
+        SELECT line_id,
+               ROUND(AVG(temperature), 1) as avg_temp,
+               ROUND(MIN(temperature), 1) as min_temp,
+               ROUND(MAX(temperature), 1) as max_temp,
+               ROUND(AVG(defect_rate) * 100, 2) as avg_defect
+        FROM production_log
+        GROUP BY line_id
+        ORDER BY avg_temp
+    """)
+    
+    line_temp = [dict(row) for row in cursor.fetchall()]
+    
+    conn.close()
+    
+    return jsonify({
+        "temp_ranges": temp_data,
+        "line_temperature": line_temp,
+        "optimal_range": "62-66°C",
+        "insight": "溫度>66°C 不良率急升至 15%+，建議強化冷卻系統"
+    })
+
+@app.route('/api/zw_cost_analysis')
+def api_zw_cost_analysis():
+    """成本損失計算"""
+    conn = get_zw_db()
+    cursor = conn.cursor()
+    
+    # 產品成本表
+    cursor.execute("SELECT product_id, unit_price, unit_cost, scrap_cost FROM cost_table")
+    cost_map = {row['product_id']: dict(row) for row in cursor.fetchall()}
+    
+    # 各產線損失
+    cursor.execute("""
+        SELECT line_id, product_id,
+               SUM(output_qty) as total_output,
+               SUM(defect_qty) as total_defect
+        FROM production_log
+        GROUP BY line_id, product_id
+    """)
+    
+    line_loss = {}
+    total_loss = 0
+    
+    for row in cursor.fetchall():
+        product_id = row['product_id']
+        defect_qty = row['total_defect']
+        
+        if product_id in cost_map:
+            scrap_cost = cost_map[product_id]['scrap_cost']
+            loss = defect_qty * scrap_cost
+            total_loss += loss
+            
+            if row['line_id'] not in line_loss:
+                line_loss[row['line_id']] = 0
+            line_loss[row['line_id']] += loss
+    
+    # 供應商造成的損失
+    cursor.execute("""
+        SELECT p.supplier_id,
+               SUM(p.defect_qty) as total_defect,
+               p.product_id
+        FROM production_log p
+        GROUP BY p.supplier_id, p.product_id
+    """)
+    
+    supplier_loss = {}
+    for row in cursor.fetchall():
+        sid = row['supplier_id']
+        pid = row['product_id']
+        if pid in cost_map:
+            loss = row['total_defect'] * cost_map[pid]['scrap_cost']
+            if sid not in supplier_loss:
+                supplier_loss[sid] = 0
+            supplier_loss[sid] += loss
+    
+    conn.close()
+    
+    # 年化（60天數據 → 365天）
+    annual_factor = 365 / 60
+    
+    return jsonify({
+        "total_loss_60d": round(total_loss, 2),
+        "total_loss_annual": round(total_loss * annual_factor, 2),
+        "line_loss": [
+            {"line_id": k, "loss_60d": round(v, 2), "loss_annual": round(v * annual_factor, 2)}
+            for k, v in sorted(line_loss.items(), key=lambda x: -x[1])
+        ],
+        "supplier_loss": [
+            {"supplier_id": k, "loss_60d": round(v, 2), "loss_annual": round(v * annual_factor, 2)}
+            for k, v in sorted(supplier_loss.items(), key=lambda x: -x[1])
+        ],
+        "insight": f"60天總損失 ¥{total_loss:,.0f}，年化約 ¥{total_loss * annual_factor:,.0f}"
+    })
+
+@app.route('/api/zw_supplier_scorecard')
+def api_zw_supplier_scorecard():
+    """供應商評分卡"""
+    conn = get_zw_db()
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+        SELECT 
+            p.supplier_id,
+            s.supplier_name,
+            s.quality_z,
+            s.cost_multiplier,
+            COUNT(*) as batch_count,
+            SUM(p.output_qty) as total_output,
+            SUM(p.defect_qty) as total_defect,
+            ROUND(100.0 * (SUM(p.output_qty) - SUM(p.defect_qty)) / SUM(p.output_qty), 2) as yield_rate,
+            ROUND(AVG(p.cycle_time), 3) as avg_cycle
+        FROM production_log p
+        JOIN supplier_master s ON p.supplier_id = s.supplier_id
+        GROUP BY p.supplier_id
+    """)
+    
+    scorecards = []
+    for row in cursor.fetchall():
+        # 計算綜合評分（品質60% + 成本20% + 交期20%）
+        quality_score = min(100, row['yield_rate'])
+        cost_score = 100 - (row['cost_multiplier'] - 1) * 100  # 成本係數越低越好
+        delivery_score = 100 - (row['avg_cycle'] - 0.9) * 200  # 週期越短越好
+        
+        total_score = quality_score * 0.6 + cost_score * 0.2 + delivery_score * 0.2
+        
+        grade = 'A' if total_score >= 95 else 'B' if total_score >= 90 else 'C' if total_score >= 85 else 'D'
+        
+        scorecards.append({
+            "supplier_id": row['supplier_id'],
+            "supplier_name": row['supplier_name'],
+            "quality_z": row['quality_z'],
+            "batch_count": row['batch_count'],
+            "yield_rate": row['yield_rate'],
+            "cost_multiplier": row['cost_multiplier'],
+            "avg_cycle": row['avg_cycle'],
+            "quality_score": round(quality_score, 1),
+            "cost_score": round(cost_score, 1),
+            "delivery_score": round(delivery_score, 1),
+            "total_score": round(total_score, 1),
+            "grade": grade
+        })
+    
+    # 按總分排序
+    scorecards.sort(key=lambda x: -x['total_score'])
+    
+    conn.close()
+    
+    return jsonify({
+        "scorecards": scorecards,
+        "weights": {"quality": 60, "cost": 20, "delivery": 20},
+        "insight": f"最佳供應商: {scorecards[0]['supplier_id']}（{scorecards[0]['grade']}級）"
+    })
+
+@app.route('/api/zw_predictive_score')
+def api_zw_predictive_score():
+    """預測性維護分數"""
+    conn = get_zw_db()
+    cursor = conn.cursor()
+    
+    # 每台機台的健康指標
+    cursor.execute("""
+        SELECT 
+            m.machine_id,
+            MAX(m.runtime_hours) as runtime_hours,
+            AVG(m.temperature) as avg_temp,
+            AVG(m.vibration) as avg_vibration,
+            MAX(m.maintenance_flag) as needs_maintenance
+        FROM machine_status m
+        WHERE m.timestamp >= DATE('now', '-7 days')
+        GROUP BY m.machine_id
+    """)
+    
+    machine_health = []
+    for row in cursor.fetchall():
+        # 計算健康分數（100分制，越低越需要維護）
+        runtime_score = max(0, 100 - (row['runtime_hours'] / 5))  # 500h = 0分
+        temp_score = max(0, 100 - (row['avg_temp'] - 60) * 5)  # 80°C = 0分
+        vibration_score = max(0, 100 - (row['avg_vibration'] - 1) * 50)  # 3.0 = 0分
+        
+        health_score = runtime_score * 0.5 + temp_score * 0.3 + vibration_score * 0.2
+        
+        risk_level = 'CRITICAL' if health_score < 30 else 'HIGH' if health_score < 50 else 'MEDIUM' if health_score < 70 else 'LOW'
+        
+        machine_health.append({
+            "machine_id": row['machine_id'],
+            "runtime_hours": round(row['runtime_hours'], 1),
+            "avg_temp": round(row['avg_temp'], 1),
+            "avg_vibration": round(row['avg_vibration'], 2),
+            "health_score": round(health_score, 1),
+            "risk_level": risk_level,
+            "recommendation": "立即維護" if risk_level == 'CRITICAL' else "排程維護" if risk_level == 'HIGH' else "監控中"
+        })
+    
+    # 按健康分數排序（最差的在前）
+    machine_health.sort(key=lambda x: x['health_score'])
+    
+    conn.close()
+    
+    return jsonify({
+        "machine_health": machine_health[:20],  # Top 20 需要關注的
+        "critical_count": len([m for m in machine_health if m['risk_level'] == 'CRITICAL']),
+        "high_count": len([m for m in machine_health if m['risk_level'] == 'HIGH']),
+        "weights": {"runtime": 50, "temperature": 30, "vibration": 20},
+        "insight": f"{len([m for m in machine_health if m['risk_level'] in ['CRITICAL', 'HIGH']])} 台機台需要優先關注"
+    })
+
+@app.route('/api/zw_operator_machine_matrix')
+def api_zw_operator_machine_matrix():
+    """操作員-機台最佳配對矩陣"""
+    conn = get_zw_db()
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+        SELECT 
+            operator_id,
+            machine_id,
+            COUNT(*) as batch_count,
+            ROUND(100.0 * (SUM(output_qty) - SUM(defect_qty)) / SUM(output_qty), 2) as yield_rate
+        FROM production_log
+        GROUP BY operator_id, machine_id
+        HAVING COUNT(*) >= 10
+        ORDER BY yield_rate DESC
+    """)
+    
+    matrix_data = [dict(row) for row in cursor.fetchall()]
+    
+    # 找出最佳配對
+    best_pairs = matrix_data[:10]
+    
+    # 找出最差配對（需要調整）
+    worst_pairs = sorted(matrix_data, key=lambda x: x['yield_rate'])[:10]
+    
+    conn.close()
+    
+    return jsonify({
+        "best_pairs": best_pairs,
+        "worst_pairs": worst_pairs,
+        "insight": f"最佳配對 {best_pairs[0]['operator_id']}-{best_pairs[0]['machine_id']} 良率 {best_pairs[0]['yield_rate']}%"
+    })
+
 @app.route('/analysis')
 def analysis():
     """深度分析頁面"""
