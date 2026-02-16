@@ -178,6 +178,143 @@
         .insight-box .icon { font-size: 1.2em; margin-right: 10px; }
         .insight-box .text { color: #aaa; font-size: 0.9em; }
         
+        /* 企業建議框 */
+        .recommendation-box {
+            background: linear-gradient(135deg, rgba(40, 167, 69, 0.1), rgba(40, 167, 69, 0.05));
+            border: 1px solid rgba(40, 167, 69, 0.3);
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        .rec-header {
+            font-size: 1.1em;
+            font-weight: bold;
+            color: #28a745;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(40, 167, 69, 0.2);
+        }
+        .rec-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 15px;
+        }
+        .rec-item {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 8px;
+            padding: 12px 15px;
+            border-left: 3px solid #4472C4;
+            font-size: 0.9em;
+            line-height: 1.6;
+            color: #ccc;
+        }
+        .rec-item.critical {
+            border-left-color: #dc3545;
+            background: rgba(220, 53, 69, 0.1);
+        }
+        .rec-item.success {
+            border-left-color: #28a745;
+            background: rgba(40, 167, 69, 0.1);
+        }
+        .rec-tag {
+            display: inline-block;
+            background: rgba(68, 114, 196, 0.3);
+            color: #7eb3ff;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.8em;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+        .rec-item.critical .rec-tag {
+            background: rgba(220, 53, 69, 0.3);
+            color: #ff8a8a;
+        }
+        .rec-item.success .rec-tag {
+            background: rgba(40, 167, 69, 0.3);
+            color: #8aff8a;
+        }
+        .rec-item strong {
+            color: #fff;
+        }
+        
+        /* 總結行動清單 */
+        .action-summary {
+            background: linear-gradient(135deg, rgba(255, 193, 7, 0.1), rgba(255, 193, 7, 0.05));
+            border: 2px solid rgba(255, 193, 7, 0.3);
+            border-radius: 16px;
+            padding: 25px;
+            margin-top: 30px;
+        }
+        .summary-header {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #ffc107;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .action-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .action-item {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: transform 0.2s;
+        }
+        .action-item:hover {
+            transform: translateY(-3px);
+        }
+        .action-item.priority-1 {
+            border-color: rgba(220, 53, 69, 0.5);
+            background: rgba(220, 53, 69, 0.1);
+        }
+        .action-item.priority-2 {
+            border-color: rgba(253, 126, 20, 0.5);
+            background: rgba(253, 126, 20, 0.1);
+        }
+        .action-item.priority-3 {
+            border-color: rgba(40, 167, 69, 0.5);
+            background: rgba(40, 167, 69, 0.1);
+        }
+        .priority-badge {
+            font-size: 0.85em;
+            margin-bottom: 8px;
+        }
+        .action-title {
+            font-weight: bold;
+            font-size: 1em;
+            color: #fff;
+            margin-bottom: 5px;
+        }
+        .action-desc {
+            font-size: 0.8em;
+            color: #888;
+            margin-bottom: 8px;
+        }
+        .action-benefit {
+            font-size: 0.9em;
+            font-weight: bold;
+            color: #28a745;
+        }
+        .summary-footer {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            padding: 15px 20px;
+            text-align: center;
+            color: #ccc;
+            font-size: 0.95em;
+            line-height: 1.6;
+        }
+        .summary-footer strong {
+            color: #ffc107;
+        }
+        
         @media (max-width: 1200px) {
             .grid-4 { grid-template-columns: repeat(2, 1fr); }
             .grid-3 { grid-template-columns: 1fr 1fr; }
@@ -238,6 +375,24 @@
                     </table>
                 </div>
             </div>
+            <div class="recommendation-box">
+                <div class="rec-header">💼 企業主建議</div>
+                <div class="rec-content">
+                    <div class="rec-item critical">
+                        <span class="rec-tag">關鍵發現</span>
+                        良率從 98% 跌至 80%，非隨機波動，是<strong>系統性問題</strong>
+                    </div>
+                    <div class="rec-item">
+                        <span class="rec-tag">立即調查</span>
+                        1. 這段時間有什麼變化？（原料批次？設備？人員？）<br>
+                        2. 是哪條線先開始下滑？找出源頭
+                    </div>
+                    <div class="rec-item success">
+                        <span class="rec-tag">行業標準</span>
+                        良率應 >95%，目前 86% 有 <strong>10% 改善空間</strong>
+                    </div>
+                </div>
+            </div>
         </div>
         
         <!-- 維護警示 Tab -->
@@ -257,6 +412,25 @@
                 <span class="icon">💡</span>
                 <span class="text" id="maintenanceInsight">載入中...</span>
             </div>
+            <div class="recommendation-box">
+                <div class="rec-header">💼 企業主建議</div>
+                <div class="rec-content">
+                    <div class="rec-item critical">
+                        <span class="rec-tag">硬門檻</span>
+                        <strong>300h = 維護臨界點</strong>，超過此值不良率急升 10 倍
+                    </div>
+                    <div class="rec-item">
+                        <span class="rec-tag">立即行動</span>
+                        1. 盤點所有機台累計運行時數<br>
+                        2. >280h 的機台排進<strong>本週維護計劃</strong><br>
+                        3. 建立「超時即停」制度
+                    </div>
+                    <div class="rec-item success">
+                        <span class="rec-tag">預期效益</span>
+                        落實 300h 維護制度，<strong>年省 ¥500萬</strong>
+                    </div>
+                </div>
+            </div>
         </div>
         
         <!-- 溫度分析 Tab -->
@@ -274,6 +448,26 @@
             <div class="insight-box">
                 <span class="icon">🌡️</span>
                 <span class="text" id="tempInsight">載入中...</span>
+            </div>
+            <div class="recommendation-box">
+                <div class="rec-header">💼 企業主建議</div>
+                <div class="rec-content">
+                    <div class="rec-item critical">
+                        <span class="rec-tag">關鍵發現</span>
+                        所有產線溫度 68-70°C，<strong>全部超過安全區間（<66°C）</strong>
+                    </div>
+                    <div class="rec-item">
+                        <span class="rec-tag">立即行動</span>
+                        1. 檢查冷卻水流量、風扇是否正常<br>
+                        2. 評估是否需要加裝冷卻設備<br>
+                        3. 暫時降低產線速度以降溫
+                    </div>
+                    <div class="rec-item success">
+                        <span class="rec-tag">投資回報</span>
+                        溫度降 4°C（68→64），不良率從 10% 降到 4%<br>
+                        <strong>年省約 ¥1,000萬</strong>
+                    </div>
+                </div>
             </div>
         </div>
         
@@ -294,6 +488,25 @@
                 <span class="icon">💰</span>
                 <span class="text" id="costInsight">載入中...</span>
             </div>
+            <div class="recommendation-box">
+                <div class="rec-header">💼 企業主建議</div>
+                <div class="rec-content">
+                    <div class="rec-item critical">
+                        <span class="rec-tag">核心訊息</span>
+                        年損 ¥1,915萬 <strong>是可以挽回的錢</strong>，不是固定成本
+                    </div>
+                    <div class="rec-item">
+                        <span class="rec-tag">優先處理</span>
+                        1. <strong>L09 產線</strong>：損失最高，調查根因（設備老舊？人員？）<br>
+                        2. <strong>S06 供應商</strong>：立即約談，要求改善或減少採購比例
+                    </div>
+                    <div class="rec-item success">
+                        <span class="rec-tag">改善目標</span>
+                        3 個月內將年化損失降至 ¥1,000萬以下<br>
+                        <strong>年省 ¥900萬</strong>
+                    </div>
+                </div>
+            </div>
         </div>
         
         <!-- 供應商 Tab -->
@@ -305,6 +518,26 @@
             <div class="insight-box">
                 <span class="icon">🏭</span>
                 <span class="text" id="supplierInsight">載入中...</span>
+            </div>
+            <div class="recommendation-box">
+                <div class="rec-header">💼 企業主建議</div>
+                <div class="rec-content">
+                    <div class="rec-item critical">
+                        <span class="rec-tag">淘汰警示</span>
+                        <strong>S05 是 D 級</strong>，應淘汰或大幅減少採購
+                    </div>
+                    <div class="rec-item">
+                        <span class="rec-tag">策略調整</span>
+                        1. <strong>S04 提升採購比例</strong>（目前最佳 B 級）<br>
+                        2. S05/S06 下季度減少 30% 訂單<br>
+                        3. 給 S01 提升機會，若達 B 級則增加合作
+                    </div>
+                    <div class="rec-item success">
+                        <span class="rec-tag">談判籌碼</span>
+                        拿這份評分卡去跟供應商談<br>
+                        <strong>有數據就有底氣</strong>
+                    </div>
+                </div>
             </div>
         </div>
         
@@ -321,6 +554,68 @@
             <div class="insight-box">
                 <span class="icon">🔮</span>
                 <span class="text" id="predictiveInsight">載入中...</span>
+            </div>
+            <div class="recommendation-box">
+                <div class="rec-header">💼 企業主建議</div>
+                <div class="rec-content">
+                    <div class="rec-item">
+                        <span class="rec-tag">健康分數</span>
+                        運行時數 50% + 溫度 30% + 振動 20%<br>
+                        <strong>分數越低 = 越需要維護</strong>
+                    </div>
+                    <div class="rec-item">
+                        <span class="rec-tag">風險等級</span>
+                        🔴 CRITICAL (<30分)：立即維護<br>
+                        🟠 HIGH (30-50分)：排程維護<br>
+                        🟡 MEDIUM (50-70分)：加強監控<br>
+                        🟢 LOW (>70分)：正常運行
+                    </div>
+                    <div class="rec-item success">
+                        <span class="rec-tag">預防勝治療</span>
+                        預測性維護可降低 <strong>70% 非計劃停機</strong><br>
+                        每次非計劃停機成本約 ¥5-10萬
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 總結行動清單（所有 Tab 可見）-->
+        <div class="action-summary">
+            <div class="summary-header">📋 總結：企業主行動清單</div>
+            <div class="action-grid">
+                <div class="action-item priority-1">
+                    <div class="priority-badge">🔴 優先1</div>
+                    <div class="action-title">300h 維護制度</div>
+                    <div class="action-desc">超時即停，本週執行</div>
+                    <div class="action-benefit">年省 ¥500萬</div>
+                </div>
+                <div class="action-item priority-1">
+                    <div class="priority-badge">🔴 優先2</div>
+                    <div class="action-title">冷卻系統檢查</div>
+                    <div class="action-desc">目標溫度 <66°C，2週內</div>
+                    <div class="action-benefit">年省 ¥1,000萬</div>
+                </div>
+                <div class="action-item priority-2">
+                    <div class="priority-badge">🟠 優先3</div>
+                    <div class="action-title">L09 產線專案</div>
+                    <div class="action-desc">調查損失根因，1個月</div>
+                    <div class="action-benefit">年省 ¥200萬</div>
+                </div>
+                <div class="action-item priority-2">
+                    <div class="priority-badge">🟠 優先4</div>
+                    <div class="action-title">S05 供應商淘汰</div>
+                    <div class="action-desc">減少採購比例，本季</div>
+                    <div class="action-benefit">年省 ¥100萬</div>
+                </div>
+                <div class="action-item priority-3">
+                    <div class="priority-badge">🟢 優先5</div>
+                    <div class="action-title">S04 增加合作</div>
+                    <div class="action-desc">最佳供應商，本季</div>
+                    <div class="action-benefit">品質提升</div>
+                </div>
+            </div>
+            <div class="summary-footer">
+                💡 <strong>一句話總結</strong>：年損 ¥1,915萬 中，至少 ¥1,000萬 可以透過「300h 維護 + 溫度控制」挽回。<strong>這不是花錢，是撿錢。</strong>
             </div>
         </div>
     </div>
