@@ -18,10 +18,17 @@ app = Flask(__name__)
 
 # DB 路徑
 DB_PATH = os.path.join(os.path.dirname(__file__), 'data', 'aat_poc_v2.db')
+ZW_DB_PATH = os.path.join(os.path.dirname(__file__), 'data', 'zw_poc_fake_60d.db')
 
 def get_db():
-    """取得 DB 連線"""
+    """取得 DB 連線（展示用）"""
     conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+def get_zw_db():
+    """取得正崴 DB 連線（深度分析）"""
+    conn = sqlite3.connect(ZW_DB_PATH)
     conn.row_factory = sqlite3.Row
     return conn
 
@@ -444,6 +451,192 @@ def api_aoi_simulation():
         "recommended_scenario": "265h",
         "recommendation": "微調至 265h，年省約 ¥3萬，外流風險可控"
     })
+
+# ============================================================
+# 正崴深度分析 API（PYLIB: 複用現有模式）
+# ============================================================
+
+@app.route('/api/zw_stats')
+def api_zw_stats():
+    """正崴數據總覽"""
+    conn = get_zw_db()
+    cursor = conn.cursor()
+    
+    cursor.execute("SELECT COUNT(*) FROM production_log")
+    batch_count = cursor.fetchone()[0]
+    
+    cursor.execute("SELECT COUNT(DISTINCT line_id) FROM production_log")
+    line_count = cursor.fetchone()[0]
+    
+    cursor.execute("SELECT SUM(output_qty), SUM(defect_qty) FROM production_log")
+    row = cursor.fetchone()
+    total_output = row[0] or 0
+    total_defect = row[1] or 0
+    yield_rate = (total_output - total_defect) / total_output * 100 if total_output > 0 else 0
+    
+    cursor.execute("SELECT COUNT(DISTINCT DATE(timestamp)) FROM production_log")
+    day_count = cursor.fetchone()[0]
+    
+    conn.close()
+    
+    return jsonify({
+        "batch_count": f"{batch_count:,}",
+        "line_count": line_count,
+        "total_output": f"{total_output:,}",
+        "yield_rate": round(yield_rate, 2),
+        "day_count": day_count
+    })
+
+@app.route('/api/zw_yield_trend')
+def api_zw_yield_trend():
+    """正崴良率趨勢（日維度）"""
+    conn = get_zw_db()
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+        SELECT DATE(timestamp) as date,
+               SUM(output_qty) as output,
+               SUM(defect_qty) as defect,
+               ROUND(100.0 * (SUM(output_qty) - SUM(defect_qty)) / SUM(output_qty), 2) as yield_rate
+        FROM production_log
+        GROUP BY DATE(timestamp)
+        ORDER BY date
+    """)
+    
+    rows = cursor.fetchall()
+    conn.close()
+    
+    return jsonify({
+        "labels": [row['date'] for row in rows],
+        "yield_data": [row['yield_rate'] for row in rows],
+        "output_data": [row['output'] for row in rows]
+    })
+
+@app.route('/api/zw_line_performance')
+def api_zw_line_performance():
+    """正崴產線績效"""
+    conn = get_zw_db()
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+        SELECT line_id,
+               COUNT(*) as batch_count,
+               SUM(output_qty) as total_output,
+               ROUND(100.0 * (SUM(output_qty) - SUM(defect_qty)) / SUM(output_qty), 2) as yield_rate,
+               ROUND(AVG(cycle_time), 3) as avg_cycle_time
+        FROM production_log
+        GROUP BY line_id
+        ORDER BY line_id
+    """)
+    
+    rows = cursor.fetchall()
+    conn.close()
+    
+    return jsonify({
+        "labels": [row['line_id'] for row in rows],
+        "yield_data": [row['yield_rate'] for row in rows],
+        "output_data": [row['total_output'] for row in rows],
+        "cycle_data": [row['avg_cycle_time'] for row in rows]
+    })
+
+@app.route('/api/zw_operator_ranking')
+def api_zw_operator_ranking():
+    """正崴操作員績效排名"""
+    conn = get_zw_db()
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+        SELECT p.operator_id,
+               COUNT(*) as batch_count,
+               ROUND(100.0 * (SUM(p.output_qty) - SUM(p.defect_qty)) / SUM(p.output_qty), 2) as yield_rate,
+               ROUND(AVG(p.cycle_time), 3) as avg_cycle_time
+        FROM production_log p
+        GROUP BY p.operator_id
+        ORDER BY yield_rate DESC
+        LIMIT 10
+    """)
+    
+    rows = cursor.fetchall()
+    conn.close()
+    
+    return jsonify({
+        "top": [
+            {
+                "operator_id": row['operator_id'],
+                "batch_count": row['batch_count'],
+                "yield_rate": row['yield_rate'],
+                "cycle_time": row['avg_cycle_time']
+            }
+            for row in rows
+        ]
+    })
+
+@app.route('/api/zw_supplier_quality')
+def api_zw_supplier_quality():
+    """正崴供應商品質"""
+    conn = get_zw_db()
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+        SELECT p.supplier_id,
+               s.supplier_name,
+               COUNT(*) as batch_count,
+               ROUND(100.0 * (SUM(p.output_qty) - SUM(p.defect_qty)) / SUM(p.output_qty), 2) as yield_rate
+        FROM production_log p
+        LEFT JOIN supplier_master s ON p.supplier_id = s.supplier_id
+        GROUP BY p.supplier_id
+        ORDER BY yield_rate DESC
+    """)
+    
+    rows = cursor.fetchall()
+    conn.close()
+    
+    return jsonify({
+        "labels": [row['supplier_id'] for row in rows],
+        "names": [row['supplier_name'] for row in rows],
+        "yield_data": [row['yield_rate'] for row in rows],
+        "batch_data": [row['batch_count'] for row in rows]
+    })
+
+@app.route('/api/zw_defect_heatmap')
+def api_zw_defect_heatmap():
+    """正崴不良率熱力圖（產線×班次）"""
+    conn = get_zw_db()
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+        SELECT line_id, shift,
+               ROUND(AVG(defect_rate) * 100, 2) as avg_defect_rate
+        FROM production_log
+        GROUP BY line_id, shift
+        ORDER BY line_id, shift
+    """)
+    
+    rows = cursor.fetchall()
+    conn.close()
+    
+    # 整理為熱力圖格式
+    lines = sorted(set(row['line_id'] for row in rows))
+    shifts = sorted(set(row['shift'] for row in rows))
+    
+    data = []
+    for row in rows:
+        data.append({
+            "line": row['line_id'],
+            "shift": row['shift'],
+            "defect_rate": row['avg_defect_rate']
+        })
+    
+    return jsonify({
+        "lines": lines,
+        "shifts": shifts,
+        "data": data
+    })
+
+@app.route('/analysis')
+def analysis():
+    """深度分析頁面"""
+    return render_template('analysis.html')
 
 @app.route('/health')
 def health():
