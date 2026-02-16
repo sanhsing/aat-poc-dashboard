@@ -110,8 +110,8 @@ def api_line_comparison():
     
     return jsonify({
         "labels": [row['line_no'] for row in rows],
-        "yield_data": [round(row['avg_yield'] * 100, 2) for row in rows],
-        "defect_data": [round(row['avg_defect'] * 100, 2) for row in rows],
+        "yield_data": [round(row['avg_yield'], 2) for row in rows],
+        "defect_data": [round(row['avg_defect'], 2) for row in rows],
         "output_data": [row['total_output'] for row in rows]
     })
 
@@ -140,7 +140,7 @@ def api_defect_trend():
         
         datasets.append({
             "label": line,
-            "data": [round(row['defect_rate'] * 100, 2) for row in rows],
+            "data": [round(row['defect_rate'], 2) for row in rows],
             "borderColor": colors[i % len(colors)],
             "fill": False
         })
@@ -240,7 +240,7 @@ def api_hourly_pattern():
     return jsonify({
         "lines": [row['line_no'] for row in rows],
         "hourly_output": [round(row['avg_hourly'], 0) for row in rows],
-        "yield_rate": [round(row['avg_yield'] * 100, 2) for row in rows]
+        "yield_rate": [round(row['avg_yield'], 2) for row in rows]
     })
 
 @app.route('/api/risk_check', methods=['POST', 'GET'])
@@ -332,8 +332,8 @@ def api_lowest_yield():
             {
                 "line": row['line_no'],
                 "date": row['date'],
-                "yield": round(row['yield_rate'] * 100, 2),
-                "defect": round(row['defect_rate'] * 100, 2)
+                "yield": round(row['yield_rate'], 2),
+                "defect": round(row['defect_rate'], 2)
             }
             for row in rows
         ]
