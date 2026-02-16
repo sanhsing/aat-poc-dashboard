@@ -125,12 +125,12 @@
                         <button onclick="ask('廠房有多少生產線？')" class="q-btn w-full text-left p-2.5 bg-blue-50 text-blue-700 rounded-lg border-l-4 border-blue-400">🏭 生產線資訊</button>
                         
                         <p class="text-gray-400 font-medium text-[10px] uppercase tracking-wider mt-3">生產分析</p>
-                        <button onclick="ask('各產線良率不良率分析')" class="q-btn w-full text-left p-2.5 bg-green-50 text-green-700 rounded-lg border-l-4 border-green-400">📈 良率分析</button>
+                        <button onclick="ask('各線良率不良率分析')" class="q-btn w-full text-left p-2.5 bg-green-50 text-green-700 rounded-lg border-l-4 border-green-400">📈 良率分析</button>
                         <button onclick="ask('哪條線良率最低？')" class="q-btn w-full text-left p-2.5 bg-green-50 text-green-700 rounded-lg border-l-4 border-green-400">🔻 最低良率</button>
-                        <button onclick="ask('各產線產能比較')" class="q-btn w-full text-left p-2.5 bg-green-50 text-green-700 rounded-lg border-l-4 border-green-400">⚡ 產能分析</button>
+                        <button onclick="ask('各線產能比較')" class="q-btn w-full text-left p-2.5 bg-green-50 text-green-700 rounded-lg border-l-4 border-green-400">⚡ 產能分析</button>
                         
                         <p class="text-gray-400 font-medium text-[10px] uppercase tracking-wider mt-3">異常追蹤</p>
-                        <button onclick="ask('連續掃碼異常分析')" class="q-btn w-full text-left p-2.5 bg-yellow-50 text-yellow-700 rounded-lg border-l-4 border-yellow-400">⚠️ 連續掃碼</button>
+                        <button onclick="ask('連續掃碼事件分析')" class="q-btn w-full text-left p-2.5 bg-yellow-50 text-yellow-700 rounded-lg border-l-4 border-yellow-400">⚠️ 連續掃碼</button>
                         <button onclick="ask('QR追溯統計')" class="q-btn w-full text-left p-2.5 bg-yellow-50 text-yellow-700 rounded-lg border-l-4 border-yellow-400">🔍 QR 追溯</button>
                         
                         <p class="text-gray-400 font-medium text-[10px] uppercase tracking-wider mt-3">影響評估</p>
@@ -209,27 +209,39 @@
         async function query(q) {
             const ql = q.toLowerCase();
             
-            if (ql.includes('表') || ql.includes('資料量') || ql.includes('總覽')) {
-                return { type: 'stats', data: await fetch('/api/stats').then(r => r.json()) };
-            }
-            if (ql.includes('良率') || ql.includes('不良率') || ql.includes('產線')) {
-                return { type: 'yield', data: await fetch('/api/line_comparison').then(r => r.json()) };
-            }
-            if (ql.includes('最低') || ql.includes('最差')) {
+            // 1. 最具體的先匹配（避免被通用關鍵字攔截）
+            if (ql.includes('最低') || ql.includes('最差') || ql.includes('最低良率')) {
                 return { type: 'lowest', data: await fetch('/api/lowest_yield').then(r => r.json()) };
             }
-            if (ql.includes('產能')) {
+            // 2. 產能（必須在「產線」之前）
+            if (ql.includes('產能') || ql.includes('產能比較') || ql.includes('產能分析')) {
                 return { type: 'capacity', data: await fetch('/api/capacity_distribution').then(r => r.json()) };
             }
-            if (ql.includes('掃碼') || ql.includes('異常')) {
-                return { type: 'scan', data: await fetch('/api/scan_events').then(r => r.json()) };
-            }
-            if (ql.includes('qr') || ql.includes('追溯')) {
-                return { type: 'qr', data: await fetch('/api/qr_trace').then(r => r.json()) };
-            }
+            // 3. 停機影響
             if (ql.includes('停機') || ql.includes('影響')) {
                 return { type: 'downtime', data: await fetch('/api/line_comparison').then(r => r.json()) };
             }
+            // 4. 掃碼異常
+            if (ql.includes('掃碼') || ql.includes('連續掃碼')) {
+                return { type: 'scan', data: await fetch('/api/scan_events').then(r => r.json()) };
+            }
+            // 5. QR 追溯
+            if (ql.includes('qr') || ql.includes('追溯')) {
+                return { type: 'qr', data: await fetch('/api/qr_trace').then(r => r.json()) };
+            }
+            // 6. 資料總覽
+            if (ql.includes('多少表') || ql.includes('資料量') || ql.includes('總覽') || ql.includes('資料表')) {
+                return { type: 'stats', data: await fetch('/api/stats').then(r => r.json()) };
+            }
+            // 7. 生產線資訊（只匹配「生產線」「幾條線」）
+            if ((ql.includes('生產線') || ql.includes('幾條線') || ql.includes('多少線')) && !ql.includes('良率')) {
+                return { type: 'lines', data: await fetch('/api/line_comparison').then(r => r.json()) };
+            }
+            // 8. 良率/不良率分析（通用匹配放最後）
+            if (ql.includes('良率') || ql.includes('不良率')) {
+                return { type: 'yield', data: await fetch('/api/line_comparison').then(r => r.json()) };
+            }
+            // 9. 預設
             return { type: 'help', q };
         }
 
@@ -301,6 +313,28 @@
                         </div>
                     `;
                     h += sqlBlock(`SELECT COUNT(*) FROM _table_catalog;\nSELECT SUM(row_count) FROM _table_catalog;`);
+                    break;
+
+                case 'lines':
+                    const cidL = 'c' + (++chartId);
+                    h += `
+                        <div class="answer-title">🏭 生產線資訊</div>
+                        <p class="text-gray-600 text-sm mb-4">目前廠房共有 <strong>${data.labels.length}</strong> 條生產線：</p>
+                        <div class="grid grid-cols-${data.labels.length} gap-3 my-4">
+                            ${data.labels.map((l,i) => `
+                                <div class="stat-item text-center">
+                                    <div class="value text-xl">${l}</div>
+                                    <div class="label">產線編號</div>
+                                </div>
+                            `).join('')}
+                        </div>
+                        <div class="chart-box"><canvas id="${cidL}" data-type="bar" data-labels='${JSON.stringify(data.labels)}' data-d1='${JSON.stringify(data.output_data)}' data-d2='[]' data-label1="總產量"></canvas></div>
+                        <div class="insight-box">
+                            <span class="icon">📋</span>
+                            <div><div class="title">產線概況</div><div class="text">4 條產線平均良率 <strong>${(data.yield_data.reduce((a,b)=>a+b,0)/data.yield_data.length).toFixed(2)}%</strong>，總產量 <strong>${(data.output_data.reduce((a,b)=>a+b,0)/1e6).toFixed(1)}M</strong> 件</div></div>
+                        </div>
+                    `;
+                    h += sqlBlock(`SELECT DISTINCT line_no FROM daily_capacity;`);
                     break;
 
                 case 'yield':
@@ -458,12 +492,24 @@
                 let cfg = {};
 
                 if (t === 'bar') {
+                    const d1 = JSON.parse(c.dataset.d1 || '[]');
+                    const d2 = JSON.parse(c.dataset.d2 || '[]');
+                    const label1 = c.dataset.label1 || '良率%';
+                    const label2 = c.dataset.label2 || '不良率%';
+                    
+                    // 支持單組或雙組數據
+                    const datasets = d2.length > 0 
+                        ? [
+                            { label: label1, data: d1, backgroundColor: '#4ade80' },
+                            { label: label2, data: d2, backgroundColor: '#f87171' }
+                          ]
+                        : [
+                            { label: label1, data: d1, backgroundColor: '#3b82f6' }
+                          ];
+                    
                     cfg = {
                         type: 'bar',
-                        data: { labels, datasets: [
-                            { label: '良率%', data: JSON.parse(c.dataset.d1), backgroundColor: '#4ade80' },
-                            { label: '不良率%', data: JSON.parse(c.dataset.d2), backgroundColor: '#f87171' }
-                        ]},
+                        data: { labels, datasets },
                         options: { responsive: true, maintainAspectRatio: false }
                     };
                 } else if (t === 'doughnut' || t === 'pie') {

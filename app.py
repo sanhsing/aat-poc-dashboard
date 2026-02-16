@@ -11,7 +11,7 @@ DB：SQLite (aat_poc_v2.db)
 import os
 import sqlite3
 import json
-from flask import Flask, render_template, jsonify, request
+from flask import Flask, render_template, jsonify, request, request
 from datetime import datetime
 
 app = Flask(__name__)
@@ -235,6 +235,74 @@ def api_hourly_pattern():
         "hourly_output": [round(row['avg_hourly'], 0) for row in rows],
         "yield_rate": [round(row['avg_yield'] * 100, 2) for row in rows]
     })
+
+@app.route('/api/risk_check', methods=['POST', 'GET'])
+def api_risk_check():
+    """
+    決策驗證 API - DVF Layer 2 核心
+    輸入：變動參數
+    輸出：風險分級 + 回滾建議
+    """
+    # GET 請求返回說明
+    if request.method == 'GET':
+        return jsonify({
+            "endpoint": "/api/risk_check",
+            "method": "POST",
+            "description": "決策驗證 - 調整前風險評估",
+            "input_example": {
+                "change_type": "sampling_rate",
+                "current_value": 5.0,
+                "proposed_value": 3.0,
+                "observation_days": 60
+            },
+            "output": ["risk_level", "risk_score", "recommendation", "rollback_threshold"]
+        })
+    
+    # POST 請求處理
+    data = request.get_json() or {}
+    
+    change_type = data.get('change_type', 'unknown')
+    current = float(data.get('current_value', 5.0))
+    proposed = float(data.get('proposed_value', 3.0))
+    obs_days = int(data.get('observation_days', 60))
+    
+    # 簡易風險計算（DVF Layer 2 邏輯）
+    change_pct = abs(proposed - current) / current * 100 if current > 0 else 0
+    
+    # 風險分級
+    if change_pct < 10:
+        risk_level = "LOW"
+        risk_score = 15
+        recommendation = "可執行，建議觀察 {obs_days} 天"
+    elif change_pct < 30:
+        risk_level = "MEDIUM"
+        risk_score = 45
+        recommendation = "謹慎執行，需設定回滾門檻"
+    elif change_pct < 50:
+        risk_level = "HIGH"
+        risk_score = 70
+        recommendation = "高風險，建議分階段調整"
+    else:
+        risk_level = "CRITICAL"
+        risk_score = 90
+        recommendation = "不建議執行，風險過高"
+    
+    # 回滾門檻建議
+    rollback_threshold = round(current * 1.5 / 100, 3) if change_type == 'sampling_rate' else round(current * 0.02, 4)
+    
+    return jsonify({
+        "change_type": change_type,
+        "current_value": current,
+        "proposed_value": proposed,
+        "change_percentage": round(change_pct, 1),
+        "risk_level": risk_level,
+        "risk_score": risk_score,
+        "recommendation": recommendation.format(obs_days=obs_days),
+        "rollback_threshold": rollback_threshold,
+        "observation_days": obs_days,
+        "dvf_layer": "Layer 2 - Decision Validation"
+    })
+
 
 @app.route('/api/lowest_yield')
 def api_lowest_yield():
