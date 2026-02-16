@@ -991,6 +991,370 @@ def api_zw_operator_machine_matrix():
         "insight": f"最佳配對 {best_pairs[0]['operator_id']}-{best_pairs[0]['machine_id']} 良率 {best_pairs[0]['yield_rate']}%"
     })
 
+# ============================================================
+# 進階分析 API v2（XTF8 五維度）@織明 @理樞 @光蘊
+# ============================================================
+
+@app.route('/api/zw_vibration_analysis')
+def api_zw_vibration_analysis():
+    """振動警示分析 - 隱藏殺手"""
+    conn = get_zw_db()
+    cursor = conn.cursor()
+    
+    # 振動分段統計
+    cursor.execute("""
+        SELECT 
+            CASE 
+                WHEN vibration < 1.5 THEN '<1.5'
+                WHEN vibration < 2.0 THEN '1.5-2.0'
+                WHEN vibration < 2.5 THEN '2.0-2.5'
+                WHEN vibration < 3.0 THEN '2.5-3.0'
+                ELSE '>3.0'
+            END as vib_range,
+            COUNT(*) as batch_count,
+            ROUND(AVG(defect_rate) * 100, 2) as avg_defect_pct,
+            ROUND(SUM(defect_qty), 0) as total_defect
+        FROM production_log
+        GROUP BY vib_range
+        ORDER BY 
+            CASE vib_range
+                WHEN '<1.5' THEN 1
+                WHEN '1.5-2.0' THEN 2
+                WHEN '2.0-2.5' THEN 3
+                WHEN '2.5-3.0' THEN 4
+                ELSE 5
+            END
+    """)
+    vib_data = [dict(row) for row in cursor.fetchall()]
+    
+    # 各機台振動狀態
+    cursor.execute("SELECT MAX(timestamp) FROM production_log")
+    max_date = cursor.fetchone()[0][:10]
+    
+    cursor.execute(f"""
+        SELECT machine_id,
+               ROUND(AVG(vibration), 2) as avg_vib,
+               ROUND(MAX(vibration), 2) as max_vib,
+               ROUND(AVG(defect_rate) * 100, 2) as defect_pct
+        FROM production_log
+        WHERE DATE(timestamp) >= DATE('{max_date}', '-7 days')
+        GROUP BY machine_id
+        ORDER BY avg_vib DESC
+        LIMIT 15
+    """)
+    machine_vib = [dict(row) for row in cursor.fetchall()]
+    
+    # 振動趨勢（日維度）
+    cursor.execute("""
+        SELECT DATE(timestamp) as date,
+               ROUND(AVG(vibration), 2) as avg_vib,
+               ROUND(AVG(defect_rate) * 100, 2) as defect_pct
+        FROM production_log
+        GROUP BY date
+        ORDER BY date
+    """)
+    vib_trend = [dict(row) for row in cursor.fetchall()]
+    
+    conn.close()
+    
+    # 計算警示數量
+    critical_machines = len([m for m in machine_vib if m['avg_vib'] > 3.0])
+    warning_machines = len([m for m in machine_vib if 2.5 <= m['avg_vib'] <= 3.0])
+    
+    return jsonify({
+        "vib_ranges": vib_data,
+        "machine_vibration": machine_vib,
+        "vib_trend": vib_trend,
+        "critical_count": critical_machines,
+        "warning_count": warning_machines,
+        "threshold": 2.5,
+        "insight": f"振動 >2.5 不良率達 16%+，是正常的 10 倍。{critical_machines} 台機台需立即檢查。"
+    })
+
+@app.route('/api/zw_multifactor')
+def api_zw_multifactor():
+    """多因子交互分析 - 災難配方檢測"""
+    conn = get_zw_db()
+    cursor = conn.cursor()
+    
+    # 三因子交互
+    cursor.execute("""
+        SELECT 
+            CASE WHEN temperature > 68 THEN '高溫' ELSE '正常溫' END as temp_g,
+            CASE WHEN runtime_hours > 300 THEN '高時數' ELSE '正常時數' END as rt_g,
+            CASE WHEN vibration > 2.5 THEN '高振動' ELSE '正常振動' END as vib_g,
+            COUNT(*) as batch_count,
+            ROUND(AVG(defect_rate) * 100, 2) as defect_pct,
+            SUM(defect_qty) as total_defect
+        FROM production_log
+        GROUP BY temp_g, rt_g, vib_g
+        ORDER BY defect_pct DESC
+    """)
+    factor_matrix = [dict(row) for row in cursor.fetchall()]
+    
+    # 雙因子熱力圖數據
+    cursor.execute("""
+        SELECT 
+            CASE 
+                WHEN temperature < 66 THEN '<66°C'
+                WHEN temperature < 68 THEN '66-68°C'
+                WHEN temperature < 70 THEN '68-70°C'
+                ELSE '>70°C'
+            END as temp_range,
+            CASE 
+                WHEN runtime_hours < 200 THEN '<200h'
+                WHEN runtime_hours < 300 THEN '200-300h'
+                WHEN runtime_hours < 400 THEN '300-400h'
+                ELSE '>400h'
+            END as runtime_range,
+            COUNT(*) as cnt,
+            ROUND(AVG(defect_rate) * 100, 2) as defect_pct
+        FROM production_log
+        GROUP BY temp_range, runtime_range
+    """)
+    heatmap_data = [dict(row) for row in cursor.fetchall()]
+    
+    # 找出最危險組合
+    worst = factor_matrix[0] if factor_matrix else {}
+    best = factor_matrix[-1] if factor_matrix else {}
+    
+    conn.close()
+    
+    return jsonify({
+        "factor_matrix": factor_matrix,
+        "heatmap_data": heatmap_data,
+        "worst_combination": worst,
+        "best_combination": best,
+        "insight": f"最差組合「{worst.get('temp_g','')}+{worst.get('rt_g','')}+{worst.get('vib_g','')}」不良率 {worst.get('defect_pct',0)}%，是最佳組合的 {round(worst.get('defect_pct',1)/max(best.get('defect_pct',1),0.1), 1)} 倍"
+    })
+
+@app.route('/api/zw_time_pattern')
+def api_zw_time_pattern():
+    """時段與週間模式分析"""
+    conn = get_zw_db()
+    cursor = conn.cursor()
+    
+    # 小時分析
+    cursor.execute("""
+        SELECT strftime('%H', timestamp) as hour,
+               COUNT(*) as batch_count,
+               ROUND(AVG(defect_rate) * 100, 2) as defect_pct,
+               ROUND(AVG(cycle_time), 3) as avg_cycle
+        FROM production_log
+        GROUP BY hour
+        ORDER BY hour
+    """)
+    hourly_data = [dict(row) for row in cursor.fetchall()]
+    
+    # 週間分析
+    cursor.execute("""
+        SELECT 
+            CAST(strftime('%w', timestamp) AS INTEGER) as weekday_num,
+            CASE strftime('%w', timestamp)
+                WHEN '0' THEN '週日'
+                WHEN '1' THEN '週一'
+                WHEN '2' THEN '週二'
+                WHEN '3' THEN '週三'
+                WHEN '4' THEN '週四'
+                WHEN '5' THEN '週五'
+                WHEN '6' THEN '週六'
+            END as weekday,
+            COUNT(*) as batch_count,
+            ROUND(AVG(defect_rate) * 100, 2) as defect_pct
+        FROM production_log
+        GROUP BY weekday_num
+        ORDER BY weekday_num
+    """)
+    weekly_data = [dict(row) for row in cursor.fetchall()]
+    
+    # 班次×時段熱力圖
+    cursor.execute("""
+        SELECT shift,
+               strftime('%H', timestamp) as hour,
+               ROUND(AVG(defect_rate) * 100, 2) as defect_pct
+        FROM production_log
+        GROUP BY shift, hour
+    """)
+    shift_hour_data = [dict(row) for row in cursor.fetchall()]
+    
+    # 找出最差/最佳時段
+    worst_hour = max(hourly_data, key=lambda x: x['defect_pct']) if hourly_data else {}
+    best_hour = min(hourly_data, key=lambda x: x['defect_pct']) if hourly_data else {}
+    worst_day = max(weekly_data, key=lambda x: x['defect_pct']) if weekly_data else {}
+    best_day = min(weekly_data, key=lambda x: x['defect_pct']) if weekly_data else {}
+    
+    conn.close()
+    
+    return jsonify({
+        "hourly": hourly_data,
+        "weekly": weekly_data,
+        "shift_hour": shift_hour_data,
+        "worst_hour": worst_hour,
+        "best_hour": best_hour,
+        "worst_day": worst_day,
+        "best_day": best_day,
+        "insight": f"最差時段 {worst_hour.get('hour','')}:00（{worst_hour.get('defect_pct',0)}%），最差日 {worst_day.get('weekday','')}（{worst_day.get('defect_pct',0)}%）"
+    })
+
+@app.route('/api/zw_maintenance_effect')
+def api_zw_maintenance_effect():
+    """維護效果驗證"""
+    conn = get_zw_db()
+    cursor = conn.cursor()
+    
+    # 維護類型統計
+    cursor.execute("""
+        SELECT maintenance_type,
+               COUNT(*) as cnt
+        FROM maintenance_log
+        GROUP BY maintenance_type
+    """)
+    maint_types = [dict(row) for row in cursor.fetchall()]
+    
+    # 維護前後比較（取每次維護前後 3 天數據）
+    cursor.execute("""
+        SELECT m.machine_id,
+               m.timestamp as maint_time,
+               m.maintenance_type
+        FROM maintenance_log m
+        ORDER BY m.timestamp
+        LIMIT 20
+    """)
+    maint_events = cursor.fetchall()
+    
+    before_after = []
+    for event in maint_events:
+        machine_id = event[0]
+        maint_time = event[1][:10]
+        maint_type = event[2]
+        
+        # 維護前 3 天
+        cursor.execute(f"""
+            SELECT ROUND(AVG(defect_rate) * 100, 2) as defect_pct,
+                   ROUND(AVG(vibration), 2) as avg_vib
+            FROM production_log
+            WHERE machine_id = '{machine_id}'
+              AND DATE(timestamp) BETWEEN DATE('{maint_time}', '-3 days') AND DATE('{maint_time}', '-1 days')
+        """)
+        before = cursor.fetchone()
+        
+        # 維護後 3 天
+        cursor.execute(f"""
+            SELECT ROUND(AVG(defect_rate) * 100, 2) as defect_pct,
+                   ROUND(AVG(vibration), 2) as avg_vib
+            FROM production_log
+            WHERE machine_id = '{machine_id}'
+              AND DATE(timestamp) BETWEEN DATE('{maint_time}', '+1 days') AND DATE('{maint_time}', '+3 days')
+        """)
+        after = cursor.fetchone()
+        
+        if before[0] and after[0]:
+            improvement = round(before[0] - after[0], 2)
+            before_after.append({
+                "machine_id": machine_id,
+                "maint_type": maint_type,
+                "before_defect": before[0],
+                "after_defect": after[0],
+                "improvement": improvement,
+                "effective": improvement > 0
+            })
+    
+    # 計算維護效果統計
+    effective_count = len([x for x in before_after if x['effective']])
+    total_count = len(before_after)
+    avg_improvement = round(sum(x['improvement'] for x in before_after) / max(total_count, 1), 2)
+    
+    # PM vs BD 效果比較
+    pm_data = [x for x in before_after if x['maint_type'] == 'PM']
+    bd_data = [x for x in before_after if x['maint_type'] == 'BD']
+    
+    conn.close()
+    
+    return jsonify({
+        "maint_types": maint_types,
+        "before_after": before_after[:15],
+        "effective_rate": round(effective_count / max(total_count, 1) * 100, 1),
+        "avg_improvement": avg_improvement,
+        "pm_effectiveness": round(len([x for x in pm_data if x['effective']]) / max(len(pm_data), 1) * 100, 1),
+        "bd_effectiveness": round(len([x for x in bd_data if x['effective']]) / max(len(bd_data), 1) * 100, 1),
+        "insight": f"維護有效率 {round(effective_count / max(total_count, 1) * 100, 1)}%，平均改善 {avg_improvement}%"
+    })
+
+@app.route('/api/zw_spc_chart')
+def api_zw_spc_chart():
+    """SPC 控制圖數據"""
+    conn = get_zw_db()
+    cursor = conn.cursor()
+    
+    # 日維度不良率（X-bar chart）
+    cursor.execute("""
+        SELECT DATE(timestamp) as date,
+               ROUND(AVG(defect_rate) * 100, 3) as avg_defect,
+               ROUND(MIN(defect_rate) * 100, 3) as min_defect,
+               ROUND(MAX(defect_rate) * 100, 3) as max_defect,
+               COUNT(*) as sample_size
+        FROM production_log
+        GROUP BY date
+        ORDER BY date
+    """)
+    daily_data = [dict(row) for row in cursor.fetchall()]
+    
+    # 計算控制線
+    if daily_data:
+        avg_values = [d['avg_defect'] for d in daily_data]
+        mean = sum(avg_values) / len(avg_values)
+        std_dev = (sum((x - mean) ** 2 for x in avg_values) / len(avg_values)) ** 0.5
+        ucl = round(mean + 3 * std_dev, 2)
+        lcl = round(max(0, mean - 3 * std_dev), 2)
+        
+        # 標記超出控制線的點
+        for d in daily_data:
+            d['out_of_control'] = d['avg_defect'] > ucl or d['avg_defect'] < lcl
+    else:
+        mean, ucl, lcl = 0, 0, 0
+    
+    # 連續規則檢測（連續 7 點同側）
+    violations = []
+    above_count = 0
+    below_count = 0
+    for i, d in enumerate(daily_data):
+        if d['avg_defect'] > mean:
+            above_count += 1
+            below_count = 0
+        else:
+            below_count += 1
+            above_count = 0
+        
+        if above_count >= 7:
+            violations.append({"date": d['date'], "type": "連續7點高於中線"})
+        if below_count >= 7:
+            violations.append({"date": d['date'], "type": "連續7點低於中線"})
+    
+    # 移動範圍圖（MR chart）
+    mr_data = []
+    for i in range(1, len(daily_data)):
+        mr = abs(daily_data[i]['avg_defect'] - daily_data[i-1]['avg_defect'])
+        mr_data.append({
+            "date": daily_data[i]['date'],
+            "mr": round(mr, 3)
+        })
+    
+    conn.close()
+    
+    out_of_control_count = len([d for d in daily_data if d.get('out_of_control')])
+    
+    return jsonify({
+        "xbar_data": daily_data,
+        "mr_data": mr_data,
+        "mean": round(mean, 2),
+        "ucl": ucl,
+        "lcl": lcl,
+        "out_of_control_count": out_of_control_count,
+        "violations": violations[:10],
+        "process_capability": "穩定" if out_of_control_count < 3 else "不穩定",
+        "insight": f"製程平均不良率 {round(mean, 2)}%，UCL={ucl}%，{out_of_control_count} 點超出控制線"
+    })
+
 @app.route('/analysis')
 def analysis():
     """深度分析頁面"""

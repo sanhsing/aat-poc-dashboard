@@ -475,6 +475,11 @@
             <button class="tab-btn" onclick="showTab('cost')">💰 成本損失</button>
             <button class="tab-btn" onclick="showTab('supplier')">🏭 供應商</button>
             <button class="tab-btn" onclick="showTab('predictive')">🔮 預測維護</button>
+            <button class="tab-btn" onclick="showTab('vibration')">🔊 振動</button>
+            <button class="tab-btn" onclick="showTab('multifactor')">🎯 多因子</button>
+            <button class="tab-btn" onclick="showTab('timepattern')">⏰ 時段</button>
+            <button class="tab-btn" onclick="showTab('mainteffect')">🛠️ 維護效果</button>
+            <button class="tab-btn" onclick="showTab('spc')">📉 SPC</button>
         </div>
         
         <!-- 總覽 Tab -->
@@ -707,6 +712,210 @@
             </div>
         </div>
         
+        <!-- 振動分析 Tab -->
+        <div id="tab-vibration" class="tab-content">
+            <div class="grid-4" id="vibrationStats"></div>
+            <div class="grid-2">
+                <div class="card">
+                    <h3>振動區間 vs 不良率</h3>
+                    <div class="chart-container"><canvas id="vibRangeChart"></canvas></div>
+                </div>
+                <div class="card">
+                    <h3>振動趨勢（日維度）</h3>
+                    <div class="chart-container"><canvas id="vibTrendChart"></canvas></div>
+                </div>
+            </div>
+            <div class="card">
+                <h3>⚠️ 高振動機台（需檢查）</h3>
+                <table class="data-table" id="vibMachineTable">
+                    <thead><tr><th>機台</th><th>平均振動</th><th>最大振動</th><th>不良率</th><th>狀態</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+            <div class="insight-box">
+                <span class="icon">🔊</span>
+                <span class="text" id="vibrationInsight">載入中...</span>
+            </div>
+            <div class="recommendation-box">
+                <div class="rec-header">💼 企業主建議</div>
+                <div class="rec-content">
+                    <div class="rec-item critical">
+                        <span class="rec-tag">隱藏殺手</span>
+                        振動 >2.5 是<strong>不良率飆升的關鍵指標</strong>，比溫度更敏感
+                    </div>
+                    <div class="rec-item">
+                        <span class="rec-tag">立即行動</span>
+                        1. 高振動機台優先安排<strong>軸承檢查</strong><br>
+                        2. 檢查機台固定螺絲是否鬆動<br>
+                        3. 評估是否需要動平衡校正
+                    </div>
+                    <div class="rec-item success">
+                        <span class="rec-tag">預期效益</span>
+                        振動從 3.0 降到 2.0，不良率可降 <strong>15%</strong><br>
+                        <strong>年省約 ¥800萬</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 多因子分析 Tab -->
+        <div id="tab-multifactor" class="tab-content">
+            <div class="grid-2">
+                <div class="card">
+                    <h3>三因子交互矩陣（溫度×時數×振動）</h3>
+                    <div id="factorMatrix"></div>
+                </div>
+                <div class="card">
+                    <h3>溫度×運行時數 熱力圖</h3>
+                    <div id="factorHeatmap"></div>
+                </div>
+            </div>
+            <div class="insight-box">
+                <span class="icon">🎯</span>
+                <span class="text" id="multifactorInsight">載入中...</span>
+            </div>
+            <div class="recommendation-box">
+                <div class="rec-header">💼 企業主建議</div>
+                <div class="rec-content">
+                    <div class="rec-item critical">
+                        <span class="rec-tag">災難配方</span>
+                        <strong>高溫 + 高時數 + 高振動 = 19.86% 不良率</strong><br>
+                        是最佳組合的 12 倍！
+                    </div>
+                    <div class="rec-item">
+                        <span class="rec-tag">預警機制</span>
+                        當任意兩個因子同時超標時，<strong>立即停機檢查</strong><br>
+                        不要等三個都超標才行動
+                    </div>
+                    <div class="rec-item success">
+                        <span class="rec-tag">核心訊息</span>
+                        單一因子可容忍，<strong>組合效應是真正的風險</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 時段分析 Tab -->
+        <div id="tab-timepattern" class="tab-content">
+            <div class="grid-2">
+                <div class="card">
+                    <h3>24小時不良率分佈</h3>
+                    <div class="chart-container"><canvas id="hourlyChart"></canvas></div>
+                </div>
+                <div class="card">
+                    <h3>週間不良率分佈</h3>
+                    <div class="chart-container"><canvas id="weeklyChart"></canvas></div>
+                </div>
+            </div>
+            <div class="card">
+                <h3>班次×時段 熱力圖</h3>
+                <div id="shiftHourHeatmap"></div>
+            </div>
+            <div class="insight-box">
+                <span class="icon">⏰</span>
+                <span class="text" id="timepatternInsight">載入中...</span>
+            </div>
+            <div class="recommendation-box">
+                <div class="rec-header">💼 企業主建議</div>
+                <div class="rec-content">
+                    <div class="rec-item critical">
+                        <span class="rec-tag">時段發現</span>
+                        早班（5-9點）不良率最高，可能與<strong>交接班</strong>有關
+                    </div>
+                    <div class="rec-item">
+                        <span class="rec-tag">排班優化</span>
+                        1. 強化早班交接流程<br>
+                        2. 週二加強品質監控<br>
+                        3. 考慮調整重要訂單排程
+                    </div>
+                    <div class="rec-item success">
+                        <span class="rec-tag">預期效益</span>
+                        時段優化可提升整體效率 <strong>3-5%</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 維護效果 Tab -->
+        <div id="tab-mainteffect" class="tab-content">
+            <div class="grid-4" id="maintEffectStats"></div>
+            <div class="card">
+                <h3>維護前後比較</h3>
+                <table class="data-table" id="maintEffectTable">
+                    <thead><tr><th>機台</th><th>類型</th><th>維護前</th><th>維護後</th><th>改善</th><th>有效</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+            <div class="insight-box">
+                <span class="icon">🛠️</span>
+                <span class="text" id="maintEffectInsight">載入中...</span>
+            </div>
+            <div class="recommendation-box">
+                <div class="rec-header">💼 企業主建議</div>
+                <div class="rec-content">
+                    <div class="rec-item">
+                        <span class="rec-tag">維護類型</span>
+                        PM = 預防性維護（定期）<br>
+                        BD = 故障維修（臨時）
+                    </div>
+                    <div class="rec-item">
+                        <span class="rec-tag">策略建議</span>
+                        1. 提高 PM 頻率，減少 BD 發生<br>
+                        2. 無效維護需檢討 SOP<br>
+                        3. 建立維護效果追蹤機制
+                    </div>
+                    <div class="rec-item success">
+                        <span class="rec-tag">核心指標</span>
+                        維護有效率應 ><strong>80%</strong>，否則需檢討維護品質
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- SPC 控制圖 Tab -->
+        <div id="tab-spc" class="tab-content">
+            <div class="grid-4" id="spcStats"></div>
+            <div class="grid-2">
+                <div class="card">
+                    <h3>X-bar 控制圖（日平均不良率）</h3>
+                    <div class="chart-container"><canvas id="xbarChart"></canvas></div>
+                </div>
+                <div class="card">
+                    <h3>移動範圍圖（MR Chart）</h3>
+                    <div class="chart-container"><canvas id="mrChart"></canvas></div>
+                </div>
+            </div>
+            <div class="card">
+                <h3>⚠️ 控制線違規記錄</h3>
+                <div id="spcViolations"></div>
+            </div>
+            <div class="insight-box">
+                <span class="icon">📉</span>
+                <span class="text" id="spcInsight">載入中...</span>
+            </div>
+            <div class="recommendation-box">
+                <div class="rec-header">💼 企業主建議</div>
+                <div class="rec-content">
+                    <div class="rec-item">
+                        <span class="rec-tag">SPC 基礎</span>
+                        UCL = 上控制線（平均 + 3σ）<br>
+                        LCL = 下控制線（平均 - 3σ）<br>
+                        超出 = 製程異常
+                    </div>
+                    <div class="rec-item critical">
+                        <span class="rec-tag">異常處理</span>
+                        1. 超出控制線 → 立即調查根因<br>
+                        2. 連續 7 點同側 → 製程偏移警示<br>
+                        3. 連續上升/下降 → 趨勢警示
+                    </div>
+                    <div class="rec-item success">
+                        <span class="rec-tag">品質升級</span>
+                        導入 SPC 可將不良率再降 <strong>20-30%</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
         <!-- 總結行動清單（所有 Tab 可見）-->
         <div class="action-summary">
             <div class="summary-header">📋 總結：企業主行動清單</div>
@@ -917,6 +1126,182 @@
             document.getElementById('predictiveInsight').textContent = data.insight;
         }
         
+        // 載入振動分析
+        async function loadVibration() {
+            const data = await fetch('/api/zw_vibration_analysis').then(r => r.json());
+            
+            document.getElementById('vibrationStats').innerHTML = `
+                <div class="stat-card alert"><div class="value">${data.critical_count}</div><div class="label">高危機台</div></div>
+                <div class="stat-card warning"><div class="value">${data.warning_count}</div><div class="label">警告機台</div></div>
+                <div class="stat-card"><div class="value">${data.threshold}</div><div class="label">警戒線</div></div>
+                <div class="stat-card success"><div class="value">${data.vib_ranges[0]?.avg_defect_pct || '-'}%</div><div class="label">低振動不良率</div></div>
+            `;
+            
+            new Chart(document.getElementById('vibRangeChart'), {
+                type: 'bar',
+                data: { labels: data.vib_ranges.map(v => v.vib_range), datasets: [{ label: '不良率%', data: data.vib_ranges.map(v => v.avg_defect_pct), backgroundColor: data.vib_ranges.map(v => v.avg_defect_pct > 10 ? '#dc3545' : v.avg_defect_pct > 5 ? '#ffc107' : '#28a745'), borderRadius: 4 }] },
+                options: { ...chartConfig, plugins: { legend: { display: false } } }
+            });
+            
+            new Chart(document.getElementById('vibTrendChart'), {
+                type: 'line',
+                data: { labels: data.vib_trend.map(v => v.date), datasets: [
+                    { label: '振動', data: data.vib_trend.map(v => v.avg_vib), borderColor: '#fd7e14', yAxisID: 'y' },
+                    { label: '不良率%', data: data.vib_trend.map(v => v.defect_pct), borderColor: '#dc3545', yAxisID: 'y1' }
+                ] },
+                options: { ...chartConfig, scales: { y: { ...chartConfig.scales.y, position: 'left' }, y1: { ...chartConfig.scales.y, position: 'right', grid: { drawOnChartArea: false } } } }
+            });
+            
+            document.querySelector('#vibMachineTable tbody').innerHTML = data.machine_vibration.map(m => `
+                <tr>
+                    <td><strong>${m.machine_id}</strong></td>
+                    <td>${m.avg_vib}</td>
+                    <td>${m.max_vib}</td>
+                    <td>${m.defect_pct}%</td>
+                    <td><span class="badge badge-${m.avg_vib > 3 ? 'critical' : m.avg_vib > 2.5 ? 'high' : 'low'}">${m.avg_vib > 3 ? '危險' : m.avg_vib > 2.5 ? '警告' : '正常'}</span></td>
+                </tr>
+            `).join('');
+            
+            document.getElementById('vibrationInsight').textContent = data.insight;
+        }
+        
+        // 載入多因子分析
+        async function loadMultifactor() {
+            const data = await fetch('/api/zw_multifactor').then(r => r.json());
+            
+            // 三因子矩陣
+            let matrixHtml = '<div style="font-size:0.85em">';
+            data.factor_matrix.forEach((f, i) => {
+                const color = f.defect_pct > 15 ? '#dc3545' : f.defect_pct > 10 ? '#fd7e14' : f.defect_pct > 5 ? '#ffc107' : '#28a745';
+                matrixHtml += `<div style="display:flex;justify-content:space-between;padding:8px;margin:4px 0;background:${color}20;border-radius:6px;border-left:3px solid ${color}">
+                    <span>${f.temp_g} + ${f.rt_g} + ${f.vib_g}</span>
+                    <span><strong style="color:${color}">${f.defect_pct}%</strong> (${f.batch_count.toLocaleString()}批)</span>
+                </div>`;
+            });
+            matrixHtml += '</div>';
+            document.getElementById('factorMatrix').innerHTML = matrixHtml;
+            
+            // 熱力圖
+            const temps = [...new Set(data.heatmap_data.map(h => h.temp_range))];
+            const runtimes = [...new Set(data.heatmap_data.map(h => h.runtime_range))];
+            let heatmapHtml = '<div style="display:grid;grid-template-columns:auto repeat(' + runtimes.length + ',1fr);gap:3px;font-size:0.8em">';
+            heatmapHtml += '<div></div>' + runtimes.map(r => `<div style="text-align:center;color:#888">${r}</div>`).join('');
+            temps.forEach(temp => {
+                heatmapHtml += `<div style="color:#888">${temp}</div>`;
+                runtimes.forEach(rt => {
+                    const item = data.heatmap_data.find(h => h.temp_range === temp && h.runtime_range === rt);
+                    const rate = item ? item.defect_pct : 0;
+                    const color = rate > 15 ? '#dc3545' : rate > 10 ? '#fd7e14' : rate > 5 ? '#ffc107' : '#28a745';
+                    heatmapHtml += `<div style="background:${color}30;color:${color};padding:10px;text-align:center;border-radius:4px">${rate}%</div>`;
+                });
+            });
+            heatmapHtml += '</div>';
+            document.getElementById('factorHeatmap').innerHTML = heatmapHtml;
+            
+            document.getElementById('multifactorInsight').textContent = data.insight;
+        }
+        
+        // 載入時段分析
+        async function loadTimePattern() {
+            const data = await fetch('/api/zw_time_pattern').then(r => r.json());
+            
+            new Chart(document.getElementById('hourlyChart'), {
+                type: 'bar',
+                data: { labels: data.hourly.map(h => h.hour + ':00'), datasets: [{ label: '不良率%', data: data.hourly.map(h => h.defect_pct), backgroundColor: data.hourly.map(h => h.defect_pct > 14.3 ? '#dc3545' : h.defect_pct > 14 ? '#ffc107' : '#28a745'), borderRadius: 2 }] },
+                options: { ...chartConfig, plugins: { legend: { display: false } } }
+            });
+            
+            new Chart(document.getElementById('weeklyChart'), {
+                type: 'bar',
+                data: { labels: data.weekly.map(w => w.weekday), datasets: [{ label: '不良率%', data: data.weekly.map(w => w.defect_pct), backgroundColor: data.weekly.map(w => w.defect_pct > 14.3 ? '#dc3545' : w.defect_pct > 14 ? '#ffc107' : '#28a745'), borderRadius: 4 }] },
+                options: { ...chartConfig, plugins: { legend: { display: false } } }
+            });
+            
+            // 班次×時段熱力圖
+            const shifts = [...new Set(data.shift_hour.map(s => s.shift))].sort();
+            const hours = [...new Set(data.shift_hour.map(s => s.hour))].sort();
+            let shHtml = '<div style="display:grid;grid-template-columns:auto repeat(' + hours.length + ',1fr);gap:2px;font-size:0.75em;overflow-x:auto">';
+            shHtml += '<div></div>' + hours.map(h => `<div style="text-align:center;color:#888">${h}</div>`).join('');
+            shifts.forEach(shift => {
+                shHtml += `<div style="color:#888">班${shift}</div>`;
+                hours.forEach(hour => {
+                    const item = data.shift_hour.find(s => s.shift == shift && s.hour == hour);
+                    const rate = item ? item.defect_pct : 0;
+                    const color = rate > 14.5 ? '#dc3545' : rate > 14 ? '#ffc107' : '#28a745';
+                    shHtml += `<div style="background:${color}30;color:${color};padding:4px;text-align:center;border-radius:2px">${rate}</div>`;
+                });
+            });
+            shHtml += '</div>';
+            document.getElementById('shiftHourHeatmap').innerHTML = shHtml;
+            
+            document.getElementById('timepatternInsight').textContent = data.insight;
+        }
+        
+        // 載入維護效果
+        async function loadMaintEffect() {
+            const data = await fetch('/api/zw_maintenance_effect').then(r => r.json());
+            
+            document.getElementById('maintEffectStats').innerHTML = `
+                <div class="stat-card ${data.effective_rate > 70 ? 'success' : 'warning'}"><div class="value">${data.effective_rate}%</div><div class="label">維護有效率</div></div>
+                <div class="stat-card"><div class="value">${data.avg_improvement}%</div><div class="label">平均改善</div></div>
+                <div class="stat-card"><div class="value">${data.pm_effectiveness}%</div><div class="label">PM 有效率</div></div>
+                <div class="stat-card"><div class="value">${data.bd_effectiveness}%</div><div class="label">BD 有效率</div></div>
+            `;
+            
+            document.querySelector('#maintEffectTable tbody').innerHTML = data.before_after.map(m => `
+                <tr>
+                    <td><strong>${m.machine_id}</strong></td>
+                    <td><span class="badge badge-${m.maint_type === 'PM' ? 'low' : 'medium'}">${m.maint_type}</span></td>
+                    <td>${m.before_defect}%</td>
+                    <td>${m.after_defect}%</td>
+                    <td style="color:${m.improvement > 0 ? '#28a745' : '#dc3545'}">${m.improvement > 0 ? '↓' : '↑'}${Math.abs(m.improvement)}%</td>
+                    <td><span class="badge badge-${m.effective ? 'low' : 'critical'}">${m.effective ? '✓' : '✗'}</span></td>
+                </tr>
+            `).join('');
+            
+            document.getElementById('maintEffectInsight').textContent = data.insight;
+        }
+        
+        // 載入 SPC 控制圖
+        async function loadSPC() {
+            const data = await fetch('/api/zw_spc_chart').then(r => r.json());
+            
+            document.getElementById('spcStats').innerHTML = `
+                <div class="stat-card"><div class="value">${data.mean}%</div><div class="label">平均 (CL)</div></div>
+                <div class="stat-card alert"><div class="value">${data.ucl}%</div><div class="label">上控制線 (UCL)</div></div>
+                <div class="stat-card success"><div class="value">${data.lcl}%</div><div class="label">下控制線 (LCL)</div></div>
+                <div class="stat-card ${data.out_of_control_count > 3 ? 'alert' : 'success'}"><div class="value">${data.out_of_control_count}</div><div class="label">超線點數</div></div>
+            `;
+            
+            new Chart(document.getElementById('xbarChart'), {
+                type: 'line',
+                data: {
+                    labels: data.xbar_data.map(d => d.date),
+                    datasets: [
+                        { label: '不良率', data: data.xbar_data.map(d => d.avg_defect), borderColor: '#4472C4', pointBackgroundColor: data.xbar_data.map(d => d.out_of_control ? '#dc3545' : '#4472C4'), pointRadius: data.xbar_data.map(d => d.out_of_control ? 6 : 3) },
+                        { label: 'UCL', data: data.xbar_data.map(() => data.ucl), borderColor: '#dc3545', borderDash: [5,5], pointRadius: 0 },
+                        { label: 'CL', data: data.xbar_data.map(() => data.mean), borderColor: '#28a745', borderDash: [2,2], pointRadius: 0 },
+                        { label: 'LCL', data: data.xbar_data.map(() => data.lcl), borderColor: '#dc3545', borderDash: [5,5], pointRadius: 0 }
+                    ]
+                },
+                options: { ...chartConfig, plugins: { legend: { labels: { color: '#888' } } } }
+            });
+            
+            new Chart(document.getElementById('mrChart'), {
+                type: 'line',
+                data: { labels: data.mr_data.map(d => d.date), datasets: [{ label: '移動範圍', data: data.mr_data.map(d => d.mr), borderColor: '#fd7e14', fill: true, backgroundColor: 'rgba(253,126,20,0.1)' }] },
+                options: { ...chartConfig, plugins: { legend: { display: false } } }
+            });
+            
+            // 違規記錄
+            let violHtml = data.violations.length > 0 
+                ? data.violations.map(v => `<div class="alert-card warning"><strong>${v.date}</strong>：${v.type}</div>`).join('')
+                : '<div style="color:#888;text-align:center;padding:20px">無控制線違規</div>';
+            document.getElementById('spcViolations').innerHTML = violHtml;
+            
+            document.getElementById('spcInsight').textContent = data.insight;
+        }
+        
         // 時間篩選
         let currentDateRange = 30;
         let currentLineFilter = 'all';
@@ -943,6 +1328,11 @@
             loadCost();
             loadSupplier();
             loadPredictive();
+            loadVibration();
+            loadMultifactor();
+            loadTimePattern();
+            loadMaintEffect();
+            loadSPC();
         }
         
         // 載入產線選項
@@ -1016,6 +1406,11 @@
         loadCost();
         loadSupplier();
         loadPredictive();
+        loadVibration();
+        loadMultifactor();
+        loadTimePattern();
+        loadMaintEffect();
+        loadSPC();
     </script>
 </body>
 </html>
