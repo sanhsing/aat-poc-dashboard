@@ -3,133 +3,168 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LLM 查詢系統 v3.2 | 正崴 PoC</title>
+    <title>LLM 查詢系統 v3.3 | 正崴 PoC</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        .typing-indicator::after { content: '|'; animation: blink 1s infinite; }
         @keyframes blink { 0%, 50% { opacity: 1; } 51%, 100% { opacity: 0; } }
-        .fade-in { animation: fadeIn 0.5s ease; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        .chat-bubble { max-width: 85%; }
-        pre { white-space: pre-wrap; word-wrap: break-word; background: #1e293b; color: #e2e8f0; padding: 12px; border-radius: 8px; font-size: 12px; }
-        .stat-card { transition: transform 0.2s; }
-        .stat-card:hover { transform: translateY(-2px); }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        
+        .fade-in { animation: fadeIn 0.4s ease; }
+        .pulse { animation: pulse 1.5s infinite; }
+        .chat-bubble { max-width: 90%; }
+        
+        /* 回答內容樣式 */
+        .answer-box { background: #f8fafc; border-radius: 16px; padding: 20px; }
+        .answer-title { font-size: 16px; font-weight: 700; color: #1e293b; margin-bottom: 16px; display: flex; align-items: center; gap: 10px; }
+        .answer-title::before { content: ''; width: 4px; height: 24px; background: linear-gradient(180deg, #f97316, #ea580c); border-radius: 2px; }
+        
+        /* 數據卡片 */
+        .stat-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin: 16px 0; }
+        .stat-item { background: linear-gradient(135deg, #fff7ed, #ffedd5); border: 1px solid #fed7aa; border-radius: 12px; padding: 14px; }
+        .stat-item .label { font-size: 11px; color: #9a3412; font-weight: 500; text-transform: uppercase; }
+        .stat-item .value { font-size: 24px; font-weight: 700; color: #c2410c; margin-top: 4px; }
+        .stat-item .unit { font-size: 12px; color: #ea580c; font-weight: 500; }
+        
+        /* 表格 */
+        .data-table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 13px; border-radius: 12px; overflow: hidden; }
+        .data-table thead { background: linear-gradient(135deg, #1e293b, #334155); }
+        .data-table th { color: white; padding: 12px 14px; text-align: left; font-weight: 600; font-size: 12px; }
+        .data-table td { padding: 12px 14px; border-bottom: 1px solid #e2e8f0; background: white; }
+        .data-table tr:hover td { background: #fff7ed; }
+        .data-table tr:last-child td { border-bottom: none; }
+        
+        /* 徽章 */
+        .badge { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+        .badge-green { background: #dcfce7; color: #166534; }
+        .badge-yellow { background: #fef3c7; color: #92400e; }
+        .badge-red { background: #fee2e2; color: #991b1b; }
+        .badge-blue { background: #dbeafe; color: #1e40af; }
+        .badge::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+        
+        /* 圖表 */
+        .chart-box { background: white; border-radius: 12px; padding: 16px; margin: 16px 0; border: 1px solid #e2e8f0; }
+        .chart-box canvas { max-height: 220px; }
+        
+        /* 洞察框 */
+        .insight-box { background: linear-gradient(135deg, #fef3c7, #fde68a); border: 1px solid #fbbf24; border-radius: 12px; padding: 14px; margin: 16px 0; display: flex; gap: 12px; }
+        .insight-box.alert { background: linear-gradient(135deg, #fee2e2, #fecaca); border-color: #f87171; }
+        .insight-box .icon { font-size: 20px; flex-shrink: 0; }
+        .insight-box .title { font-weight: 700; color: #92400e; font-size: 13px; }
+        .insight-box.alert .title { color: #991b1b; }
+        .insight-box .text { color: #78350f; font-size: 13px; margin-top: 2px; line-height: 1.5; }
+        .insight-box.alert .text { color: #7f1d1d; }
+        
+        /* SQL */
+        .sql-box { background: #1e293b; border-radius: 8px; padding: 12px 16px; margin-top: 16px; font-family: 'Fira Code', monospace; font-size: 11px; color: #94a3b8; overflow-x: auto; }
+        .sql-box code { color: #e2e8f0; }
+        .sql-toggle { font-size: 12px; color: #64748b; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; margin-top: 12px; }
+        .sql-toggle:hover { color: #f97316; }
+        
+        /* 進度條 */
+        .progress-row { display: flex; align-items: center; gap: 12px; padding: 8px 0; }
+        .progress-row .name { width: 60px; font-weight: 600; font-size: 13px; color: #1e293b; }
+        .progress-row .bar { flex: 1; height: 24px; background: #e2e8f0; border-radius: 6px; overflow: hidden; position: relative; }
+        .progress-row .fill { height: 100%; border-radius: 6px; display: flex; align-items: center; justify-content: flex-end; padding-right: 8px; font-size: 11px; font-weight: 600; color: white; }
+        .progress-row .value { width: 80px; text-align: right; font-size: 13px; color: #64748b; }
+        
+        /* 問題按鈕 */
+        .q-btn { transition: all 0.2s; border: 1px solid transparent; }
+        .q-btn:hover { transform: translateX(4px); border-color: currentColor; }
     </style>
 </head>
 <body class="min-h-screen bg-gray-100">
-    <!-- 頂部導航 -->
+    <!-- 頂部 -->
     <nav class="bg-gradient-to-r from-orange-600 to-orange-500 text-white shadow-lg">
         <div class="max-w-7xl mx-auto px-4 py-4">
             <div class="flex justify-between items-center">
                 <div>
-                    <h1 class="text-xl font-bold flex items-center gap-2">
-                        <span class="text-2xl">🦊</span> FoxLink LLM 查詢平台
-                    </h1>
-                    <p class="text-xs text-orange-100">正崴 PoC · DB 驅動查詢 · PYLIB v3.18</p>
+                    <h1 class="text-xl font-bold flex items-center gap-2">🦊 FoxLink LLM 查詢平台</h1>
+                    <p class="text-xs text-orange-100">正崴 PoC v3.3 · DB 驅動智能查詢</p>
                 </div>
-                <div class="flex gap-2">
-                    <a href="/" class="px-3 py-1 bg-white text-orange-600 rounded text-xs hover:bg-orange-50">📊 Dashboard</a>
-                    <span class="px-3 py-1 bg-green-500 rounded-full text-xs font-bold">Live</span>
+                <div class="flex gap-3">
+                    <a href="/" class="px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg text-sm transition">📊 Dashboard</a>
+                    <span class="px-3 py-2 bg-green-500 rounded-lg text-xs font-bold flex items-center gap-1">
+                        <span class="w-2 h-2 bg-white rounded-full pulse"></span> Live
+                    </span>
                 </div>
             </div>
         </div>
     </nav>
 
     <div class="max-w-7xl mx-auto px-4 py-6">
-        <!-- 統計卡片 -->
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-            <div class="stat-card bg-white rounded-xl shadow p-4 border-l-4 border-blue-500">
-                <p class="text-gray-500 text-xs">資料表數</p>
-                <p class="text-2xl font-bold text-blue-600" id="stat-tables">-</p>
+        <!-- 頂部統計 -->
+        <div class="grid grid-cols-4 gap-4 mb-6">
+            <div class="bg-white rounded-xl shadow p-4 border-l-4 border-blue-500">
+                <p class="text-gray-500 text-xs">資料表</p>
+                <p class="text-2xl font-bold text-blue-600" id="s-tables">-</p>
             </div>
-            <div class="stat-card bg-white rounded-xl shadow p-4 border-l-4 border-green-500">
-                <p class="text-gray-500 text-xs">總資料量</p>
-                <p class="text-2xl font-bold text-green-600" id="stat-rows">-</p>
+            <div class="bg-white rounded-xl shadow p-4 border-l-4 border-green-500">
+                <p class="text-gray-500 text-xs">總資料</p>
+                <p class="text-xl font-bold text-green-600" id="s-rows">-</p>
             </div>
-            <div class="stat-card bg-white rounded-xl shadow p-4 border-l-4 border-purple-500">
-                <p class="text-gray-500 text-xs">生產線數</p>
-                <p class="text-2xl font-bold text-purple-600" id="stat-lines">-</p>
+            <div class="bg-white rounded-xl shadow p-4 border-l-4 border-purple-500">
+                <p class="text-gray-500 text-xs">產線</p>
+                <p class="text-2xl font-bold text-purple-600" id="s-lines">-</p>
             </div>
-            <div class="stat-card bg-white rounded-xl shadow p-4 border-l-4 border-orange-500">
-                <p class="text-gray-500 text-xs">平均良率</p>
-                <p class="text-2xl font-bold text-orange-600"><span id="stat-yield">-</span>%</p>
+            <div class="bg-white rounded-xl shadow p-4 border-l-4 border-orange-500">
+                <p class="text-gray-500 text-xs">良率</p>
+                <p class="text-2xl font-bold text-orange-600"><span id="s-yield">-</span>%</p>
             </div>
         </div>
 
         <div class="grid lg:grid-cols-4 gap-6">
-            <!-- 左側：快速問題 -->
+            <!-- 左側問題 -->
             <div class="lg:col-span-1 space-y-4">
                 <div class="bg-white rounded-xl shadow-lg p-4">
-                    <h3 class="font-bold text-gray-800 mb-3 flex items-center gap-2">
-                        <span class="text-xl">💡</span> PoC 問題清單
-                    </h3>
-                    <div class="space-y-1.5 text-xs">
-                        <p class="text-gray-500 font-medium">一、資料輪廓</p>
-                        <button onclick="askQuestion('目前共有多少表？資料數有多少？')" class="w-full text-left p-2 bg-blue-50 hover:bg-blue-100 rounded border-l-4 border-blue-400">
-                            #1 共有多少表？
-                        </button>
-                        <button onclick="askQuestion('廠房有多少生產線？')" class="w-full text-left p-2 bg-blue-50 hover:bg-blue-100 rounded border-l-4 border-blue-400">
-                            #2 有多少生產線？
-                        </button>
+                    <h3 class="font-bold text-gray-800 mb-4 flex items-center gap-2">💡 智能問答</h3>
+                    <div class="space-y-2 text-xs">
+                        <p class="text-gray-400 font-medium text-[10px] uppercase tracking-wider">資料總覽</p>
+                        <button onclick="ask('資料庫有多少表？總資料量？')" class="q-btn w-full text-left p-2.5 bg-blue-50 text-blue-700 rounded-lg border-l-4 border-blue-400">📊 資料表總覽</button>
+                        <button onclick="ask('廠房有多少生產線？')" class="q-btn w-full text-left p-2.5 bg-blue-50 text-blue-700 rounded-lg border-l-4 border-blue-400">🏭 生產線資訊</button>
                         
-                        <p class="text-gray-500 font-medium mt-3">二、生產分析</p>
-                        <button onclick="askQuestion('908線的產能如何？')" class="w-full text-left p-2 bg-green-50 hover:bg-green-100 rounded border-l-4 border-green-400">
-                            #3 908線產能？
-                        </button>
-                        <button onclick="askQuestion('各產線的不良率為多少？')" class="w-full text-left p-2 bg-green-50 hover:bg-green-100 rounded border-l-4 border-green-400">
-                            #4 各線不良率？
-                        </button>
-                        <button onclick="askQuestion('哪條線良率最低？哪天發生？')" class="w-full text-left p-2 bg-green-50 hover:bg-green-100 rounded border-l-4 border-green-400">
-                            #5 最低良率？
-                        </button>
+                        <p class="text-gray-400 font-medium text-[10px] uppercase tracking-wider mt-3">生產分析</p>
+                        <button onclick="ask('各產線良率不良率分析')" class="q-btn w-full text-left p-2.5 bg-green-50 text-green-700 rounded-lg border-l-4 border-green-400">📈 良率分析</button>
+                        <button onclick="ask('哪條線良率最低？')" class="q-btn w-full text-left p-2.5 bg-green-50 text-green-700 rounded-lg border-l-4 border-green-400">🔻 最低良率</button>
+                        <button onclick="ask('各產線產能比較')" class="q-btn w-full text-left p-2.5 bg-green-50 text-green-700 rounded-lg border-l-4 border-green-400">⚡ 產能分析</button>
                         
-                        <p class="text-gray-500 font-medium mt-3">三、事件查詢</p>
-                        <button onclick="askQuestion('是否有連續掃碼的情況？')" class="w-full text-left p-2 bg-yellow-50 hover:bg-yellow-100 rounded border-l-4 border-yellow-400">
-                            #6 連續掃碼？
-                        </button>
-                        <button onclick="askQuestion('入庫票影響的箱號有哪些？')" class="w-full text-left p-2 bg-yellow-50 hover:bg-yellow-100 rounded border-l-4 border-yellow-400">
-                            #8 入庫票追溯？
-                        </button>
+                        <p class="text-gray-400 font-medium text-[10px] uppercase tracking-wider mt-3">異常追蹤</p>
+                        <button onclick="ask('連續掃碼異常分析')" class="q-btn w-full text-left p-2.5 bg-yellow-50 text-yellow-700 rounded-lg border-l-4 border-yellow-400">⚠️ 連續掃碼</button>
+                        <button onclick="ask('QR追溯統計')" class="q-btn w-full text-left p-2.5 bg-yellow-50 text-yellow-700 rounded-lg border-l-4 border-yellow-400">🔍 QR 追溯</button>
                         
-                        <p class="text-gray-500 font-medium mt-3">四、影響分析</p>
-                        <button onclick="askQuestion('如果907線停機1小時會造成多大影響？')" class="w-full text-left p-2 bg-orange-50 hover:bg-orange-100 rounded border-l-4 border-orange-400">
-                            #9 停機影響？
-                        </button>
-                        
-                        <p class="text-gray-500 font-medium mt-3">五、追溯查詢</p>
-                        <button onclick="askQuestion('QR code追溯：經歷哪些機台？')" class="w-full text-left p-2 bg-red-50 hover:bg-red-100 rounded border-l-4 border-red-400">
-                            #10 QR追溯？
-                        </button>
+                        <p class="text-gray-400 font-medium text-[10px] uppercase tracking-wider mt-3">影響評估</p>
+                        <button onclick="ask('停機1小時影響多大？')" class="q-btn w-full text-left p-2.5 bg-red-50 text-red-700 rounded-lg border-l-4 border-red-400">⏱️ 停機影響</button>
                     </div>
                 </div>
             </div>
 
-            <!-- 右側：對話區 -->
+            <!-- 對話區 -->
             <div class="lg:col-span-3">
-                <div class="bg-white rounded-xl shadow-lg overflow-hidden flex flex-col" style="height: 700px;">
-                    <!-- 對話歷史 -->
-                    <div id="chatHistory" class="flex-1 overflow-y-auto p-4 space-y-4">
-                        <div class="flex gap-3">
-                            <div class="w-10 h-10 bg-orange-500 rounded-full flex items-center justify-center text-white flex-shrink-0">🦊</div>
-                            <div class="chat-bubble bg-gray-100 rounded-xl p-4">
-                                <p class="text-gray-800 font-medium">你好！我是正崴 LLM 查詢平台。</p>
-                                <p class="text-gray-600 text-sm mt-2">已連接後端資料庫，可即時查詢生產數據。</p>
-                                <p class="text-gray-500 text-xs mt-2">試試左側的問題，或直接輸入！</p>
+                <div class="bg-white rounded-xl shadow-lg overflow-hidden flex flex-col" style="height: 720px;">
+                    <div id="chat" class="flex-1 overflow-y-auto p-6 space-y-6">
+                        <!-- 歡迎 -->
+                        <div class="flex gap-4">
+                            <div class="w-12 h-12 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center text-white text-xl flex-shrink-0 shadow-lg">🦊</div>
+                            <div class="chat-bubble bg-gray-50 rounded-2xl p-5">
+                                <p class="text-gray-800 font-semibold text-lg">你好！我是正崴 LLM 智能查詢助手</p>
+                                <p class="text-gray-500 text-sm mt-2">已連接生產資料庫，支援即時查詢與視覺化分析。</p>
+                                <div class="flex gap-2 mt-4">
+                                    <span class="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs">圖表分析</span>
+                                    <span class="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs">數據表格</span>
+                                    <span class="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-xs">SQL 查詢</span>
+                                </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- 輸入區 -->
+                    <!-- 輸入 -->
                     <div class="border-t p-4 bg-gray-50">
-                        <div class="flex gap-2">
-                            <input type="text" id="userInput" 
-                                   placeholder="輸入問題，例如：各產線良率多少？" 
-                                   class="flex-1 px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-                                   onkeypress="if(event.key==='Enter') sendMessage()">
-                            <button onclick="sendMessage()" class="px-6 py-3 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition">
-                                發送 →
-                            </button>
+                        <div class="flex gap-3">
+                            <input type="text" id="input" placeholder="輸入問題..." 
+                                   class="flex-1 px-5 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500"
+                                   onkeypress="if(event.key==='Enter') send()">
+                            <button onclick="send()" class="px-8 py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl hover:shadow-lg transition font-medium">發送 →</button>
                         </div>
                     </div>
                 </div>
@@ -138,211 +173,314 @@
     </div>
 
     <script>
+        let chartId = 0;
+        
         // 載入統計
-        async function loadStats() {
-            const res = await fetch('/api/stats');
-            const data = await res.json();
-            document.getElementById('stat-tables').textContent = data.table_count;
-            document.getElementById('stat-rows').textContent = data.total_rows;
-            document.getElementById('stat-lines').textContent = data.line_count;
-            document.getElementById('stat-yield').textContent = data.avg_yield.toFixed(2);
-        }
-        loadStats();
+        fetch('/api/stats').then(r => r.json()).then(d => {
+            document.getElementById('s-tables').textContent = d.table_count;
+            document.getElementById('s-rows').textContent = d.total_rows;
+            document.getElementById('s-lines').textContent = d.line_count;
+            document.getElementById('s-yield').textContent = d.avg_yield.toFixed(2);
+        });
 
-        // 問題到 API 的映射
-        const questionMapping = {
-            '多少表': { api: '/api/stats', type: 'stats' },
-            '資料數': { api: '/api/stats', type: 'stats' },
-            '生產線': { api: '/api/line_comparison', type: 'lines' },
-            '產能': { api: '/api/line_comparison', type: 'capacity' },
-            '不良率': { api: '/api/line_comparison', type: 'defect' },
-            '良率': { api: '/api/line_comparison', type: 'yield' },
-            '最低': { api: '/api/lowest_yield', type: 'lowest' },
-            '連續掃碼': { api: '/api/scan_events', type: 'scan' },
-            '入庫票': { api: '/api/qr_trace', type: 'ticket' },
-            '停機': { api: '/api/line_comparison', type: 'downtime' },
-            'QR': { api: '/api/qr_trace', type: 'qr' },
-            '追溯': { api: '/api/qr_trace', type: 'trace' }
-        };
+        function ask(q) { document.getElementById('input').value = q; send(); }
 
-        function askQuestion(q) {
-            document.getElementById('userInput').value = q;
-            sendMessage();
-        }
-
-        async function sendMessage() {
-            const input = document.getElementById('userInput');
-            const question = input.value.trim();
-            if (!question) return;
+        async function send() {
+            const input = document.getElementById('input');
+            const q = input.value.trim();
+            if (!q) return;
             input.value = '';
 
-            // 顯示用戶訊息
-            addMessage(question, 'user');
-            
-            // 顯示思考中
-            const thinkingId = addMessage('正在查詢資料庫...', 'bot', true);
+            addUser(q);
+            const loading = addLoading();
 
-            // 解析問題，找到對應的 API
-            let apiInfo = { api: '/api/stats', type: 'stats' };
-            for (const [key, value] of Object.entries(questionMapping)) {
-                if (question.includes(key)) {
-                    apiInfo = value;
-                    break;
-                }
-            }
+            await new Promise(r => setTimeout(r, 600));
 
             try {
-                const res = await fetch(apiInfo.api);
-                const data = await res.json();
-                
-                // 生成回答
-                const answer = generateAnswer(question, data, apiInfo.type);
-                
-                // 更新回答
-                updateMessage(thinkingId, answer);
-            } catch (err) {
-                updateMessage(thinkingId, '查詢失敗：' + err.message);
+                const result = await query(q);
+                loading.remove();
+                addBot(result);
+            } catch (e) {
+                loading.remove();
+                addBot({ type: 'error', msg: e.message });
             }
         }
 
-        function generateAnswer(question, data, type) {
-            let answer = '';
+        async function query(q) {
+            const ql = q.toLowerCase();
             
+            if (ql.includes('表') || ql.includes('資料量') || ql.includes('總覽')) {
+                return { type: 'stats', data: await fetch('/api/stats').then(r => r.json()) };
+            }
+            if (ql.includes('良率') || ql.includes('不良率') || ql.includes('產線')) {
+                return { type: 'yield', data: await fetch('/api/line_comparison').then(r => r.json()) };
+            }
+            if (ql.includes('最低') || ql.includes('最差')) {
+                return { type: 'lowest', data: await fetch('/api/lowest_yield').then(r => r.json()) };
+            }
+            if (ql.includes('產能')) {
+                return { type: 'capacity', data: await fetch('/api/capacity_distribution').then(r => r.json()) };
+            }
+            if (ql.includes('掃碼') || ql.includes('異常')) {
+                return { type: 'scan', data: await fetch('/api/scan_events').then(r => r.json()) };
+            }
+            if (ql.includes('qr') || ql.includes('追溯')) {
+                return { type: 'qr', data: await fetch('/api/qr_trace').then(r => r.json()) };
+            }
+            if (ql.includes('停機') || ql.includes('影響')) {
+                return { type: 'downtime', data: await fetch('/api/line_comparison').then(r => r.json()) };
+            }
+            return { type: 'help', q };
+        }
+
+        function addUser(text) {
+            const chat = document.getElementById('chat');
+            chat.insertAdjacentHTML('beforeend', `
+                <div class="flex gap-4 justify-end fade-in">
+                    <div class="chat-bubble bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-2xl p-4 shadow-lg">
+                        <p>${esc(text)}</p>
+                    </div>
+                    <div class="w-12 h-12 bg-gray-200 rounded-xl flex items-center justify-center text-xl flex-shrink-0">👤</div>
+                </div>
+            `);
+            chat.scrollTop = chat.scrollHeight;
+        }
+
+        function addLoading() {
+            const chat = document.getElementById('chat');
+            const div = document.createElement('div');
+            div.className = 'flex gap-4 fade-in';
+            div.innerHTML = `
+                <div class="w-12 h-12 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center text-white text-xl flex-shrink-0 shadow-lg">🦊</div>
+                <div class="chat-bubble bg-gray-50 rounded-2xl p-5">
+                    <div class="flex items-center gap-3">
+                        <div class="flex gap-1">
+                            <span class="w-2 h-2 bg-orange-500 rounded-full pulse"></span>
+                            <span class="w-2 h-2 bg-orange-500 rounded-full pulse" style="animation-delay:0.2s"></span>
+                            <span class="w-2 h-2 bg-orange-500 rounded-full pulse" style="animation-delay:0.4s"></span>
+                        </div>
+                        <span class="text-gray-500 text-sm">正在查詢資料庫...</span>
+                    </div>
+                </div>
+            `;
+            chat.appendChild(div);
+            chat.scrollTop = chat.scrollHeight;
+            return div;
+        }
+
+        function addBot(r) {
+            const chat = document.getElementById('chat');
+            const html = render(r);
+            chat.insertAdjacentHTML('beforeend', `
+                <div class="flex gap-4 fade-in">
+                    <div class="w-12 h-12 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center text-white text-xl flex-shrink-0 shadow-lg">🦊</div>
+                    <div class="chat-bubble flex-1">${html}</div>
+                </div>
+            `);
+            chat.scrollTop = chat.scrollHeight;
+            setTimeout(renderCharts, 50);
+        }
+
+        function render(r) {
+            const { type, data } = r;
+            let h = '<div class="answer-box">';
+
             switch(type) {
                 case 'stats':
-                    answer = `### 📊 資料總覽
-
-目前資料庫共有 **${data.table_count} 張表**，總資料筆數為 **${data.total_rows}**。
-
-- 生產線數：${data.line_count} 條
-- 平均良率：${data.avg_yield.toFixed(2)}%`;
+                    h += `
+                        <div class="answer-title">📊 資料庫總覽</div>
+                        <div class="stat-grid">
+                            <div class="stat-item"><div class="label">資料表</div><div class="value">${data.table_count}<span class="unit"> 張</span></div></div>
+                            <div class="stat-item"><div class="label">總資料量</div><div class="value" style="font-size:18px">${data.total_rows}</div></div>
+                            <div class="stat-item"><div class="label">生產線</div><div class="value">${data.line_count}<span class="unit"> 條</span></div></div>
+                            <div class="stat-item"><div class="label">平均良率</div><div class="value">${data.avg_yield.toFixed(2)}<span class="unit">%</span></div></div>
+                        </div>
+                        <div class="insight-box">
+                            <span class="icon">💡</span>
+                            <div><div class="title">數據洞察</div><div class="text">系統整合 ${data.table_count} 張表、超過 <strong>15 億筆</strong>生產數據，支援即時查詢與分析。</div></div>
+                        </div>
+                    `;
+                    h += sqlBlock(`SELECT COUNT(*) FROM _table_catalog;\nSELECT SUM(row_count) FROM _table_catalog;`);
                     break;
-                    
-                case 'lines':
-                case 'capacity':
-                    answer = `### 🏭 生產線資訊
 
-目前共有 **${data.labels.length} 條生產線**：
-
-| 產線 | 良率 | 不良率 |
-|:-----|-----:|-------:|
-${data.labels.map((l, i) => `| ${l} | ${data.yield_data[i]}% | ${data.defect_data[i]}% |`).join('\n')}`;
-                    break;
-                    
                 case 'yield':
-                case 'defect':
-                    answer = `### 📈 良率/不良率分析
-
-各產線良率比較：
-
-${data.labels.map((l, i) => `- **${l}**：良率 ${data.yield_data[i]}%，不良率 ${data.defect_data[i]}%`).join('\n')}
-
-平均良率：${(data.yield_data.reduce((a,b) => a+b, 0) / data.yield_data.length).toFixed(2)}%`;
+                    const cid1 = 'c' + (++chartId);
+                    h += `
+                        <div class="answer-title">📈 良率分析</div>
+                        <p class="text-gray-600 text-sm mb-4">共 <strong>${data.labels.length}</strong> 條產線，以下為良率與不良率比較：</p>
+                        <div class="chart-box"><canvas id="${cid1}" data-type="bar" data-labels='${JSON.stringify(data.labels)}' data-d1='${JSON.stringify(data.yield_data)}' data-d2='${JSON.stringify(data.defect_data)}'></canvas></div>
+                        <table class="data-table">
+                            <thead><tr><th>產線</th><th>良率</th><th>不良率</th><th>狀態</th></tr></thead>
+                            <tbody>${data.labels.map((l,i) => `<tr><td><strong>${l}</strong></td><td>${data.yield_data[i]}%</td><td>${data.defect_data[i]}%</td><td>${badge(data.yield_data[i])}</td></tr>`).join('')}</tbody>
+                        </table>
+                    `;
+                    h += sqlBlock(`SELECT line_no, AVG(yield_rate)*100, AVG(defect_rate)*100\nFROM daily_capacity GROUP BY line_no;`);
                     break;
-                    
+
                 case 'lowest':
-                    const records = data.records;
-                    answer = `### 🔻 最低良率記錄
-
-良率最低的 TOP 5：
-
-| 排名 | 產線 | 日期 | 良率 | 不良率 |
-|:----:|:-----|:-----|-----:|-------:|
-${records.slice(0, 5).map((r, i) => `| ${i+1} | ${r.line} | ${r.date} | ${r.yield}% | ${r.defect}% |`).join('\n')}
-
-⚠️ 最低記錄：**${records[0].line}** 在 **${records[0].date}** 良率僅 **${records[0].yield}%**`;
+                    const recs = data.records;
+                    h += `
+                        <div class="answer-title">🔻 最低良率追蹤</div>
+                        <div class="insight-box alert">
+                            <span class="icon">⚠️</span>
+                            <div><div class="title">警示</div><div class="text">最低記錄：<strong>${recs[0].line}</strong> 在 <strong>${recs[0].date}</strong> 良率僅 <strong>${recs[0].yield}%</strong></div></div>
+                        </div>
+                        <table class="data-table">
+                            <thead><tr><th>排名</th><th>產線</th><th>日期</th><th>良率</th><th>不良率</th></tr></thead>
+                            <tbody>${recs.slice(0,8).map((r,i) => `<tr><td><span class="badge ${i<3?'badge-red':'badge-yellow'}">#${i+1}</span></td><td><strong>${r.line}</strong></td><td>${r.date}</td><td>${r.yield}%</td><td>${r.defect}%</td></tr>`).join('')}</tbody>
+                        </table>
+                    `;
+                    h += sqlBlock(`SELECT line_no, date, yield_rate, defect_rate\nFROM daily_capacity ORDER BY yield_rate LIMIT 10;`);
                     break;
-                    
+
+                case 'capacity':
+                    const cid2 = 'c' + (++chartId);
+                    const total = data.data.reduce((a,b)=>a+b,0);
+                    h += `
+                        <div class="answer-title">⚡ 產能分析</div>
+                        <div class="chart-box"><canvas id="${cid2}" data-type="doughnut" data-labels='${JSON.stringify(data.labels)}' data-values='${JSON.stringify(data.data)}'></canvas></div>
+                        <div class="mt-4 space-y-2">
+                            ${data.labels.map((l,i) => {
+                                const pct = (data.data[i]/total*100).toFixed(1);
+                                const colors = ['#4ade80','#60a5fa','#fbbf24','#f87171'];
+                                return `<div class="progress-row">
+                                    <div class="name">${l}</div>
+                                    <div class="bar"><div class="fill" style="width:${pct}%;background:${colors[i%4]}">${pct}%</div></div>
+                                    <div class="value">${(data.data[i]/1e6).toFixed(1)}M</div>
+                                </div>`;
+                            }).join('')}
+                        </div>
+                    `;
+                    h += sqlBlock(`SELECT line_no, SUM(total_good)\nFROM daily_capacity GROUP BY line_no;`);
+                    break;
+
                 case 'scan':
-                    answer = `### ⚠️ 連續掃碼事件
-
-各產線連續掃碼統計：
-
-${data.labels.map((l, i) => `- **${l}**：${data.data[i]} 次事件`).join('\n')}
-
-總計：${data.data.reduce((a,b) => a+b, 0)} 次連續掃碼事件`;
+                    const cid3 = 'c' + (++chartId);
+                    const totalScan = data.data.reduce((a,b)=>a+b,0);
+                    h += `
+                        <div class="answer-title">⚠️ 連續掃碼事件</div>
+                        <p class="text-gray-600 text-sm mb-4">連續掃碼可能代表重工或操作異常：</p>
+                        <div class="chart-box"><canvas id="${cid3}" data-type="hbar" data-labels='${JSON.stringify(data.labels)}' data-values='${JSON.stringify(data.data)}'></canvas></div>
+                        <div class="insight-box">
+                            <span class="icon">📋</span>
+                            <div><div class="title">統計摘要</div><div class="text">共 <strong>${totalScan}</strong> 次連續掃碼事件，分佈於 ${data.labels.length} 條產線。</div></div>
+                        </div>
+                    `;
+                    h += sqlBlock(`SELECT line_no, COUNT(*)\nFROM scan_continuous_summary GROUP BY line_no;`);
                     break;
-                    
+
                 case 'qr':
-                case 'trace':
-                case 'ticket':
-                    answer = `### 🔍 QR 追溯統計
-
-追溯結果分佈：
-
-${data.labels.map((l, i) => `- **${l}**：${data.data[i]} 筆`).join('\n')}
-
-總追溯記錄：${data.data.reduce((a,b) => a+b, 0)} 筆`;
+                    const cid4 = 'c' + (++chartId);
+                    const totalQR = data.data.reduce((a,b)=>a+b,0);
+                    h += `
+                        <div class="answer-title">🔍 QR 追溯統計</div>
+                        <div class="chart-box"><canvas id="${cid4}" data-type="pie" data-labels='${JSON.stringify(data.labels)}' data-values='${JSON.stringify(data.data)}'></canvas></div>
+                        <table class="data-table">
+                            <thead><tr><th>結果</th><th>數量</th><th>佔比</th></tr></thead>
+                            <tbody>${data.labels.map((l,i) => `<tr><td><span class="badge ${l==='OK'?'badge-green':'badge-red'}">${l}</span></td><td>${data.data[i]}</td><td>${(data.data[i]/totalQR*100).toFixed(1)}%</td></tr>`).join('')}</tbody>
+                        </table>
+                    `;
+                    h += sqlBlock(`SELECT result, COUNT(*)\nFROM qr_trace_index GROUP BY result;`);
                     break;
-                    
+
                 case 'downtime':
-                    const total = data.output_data.reduce((a,b) => a+b, 0);
-                    const hourly = Math.round(total / 732 / 24);
-                    answer = `### ⏱️ 停機影響分析
-
-以 **907 線**為例，若停機 1 小時：
-
-- 預估損失產能：約 **${hourly.toLocaleString()}** 件
-- 佔日產能比例：約 **4.17%**
-
-各產線總產能：
-${data.labels.map((l, i) => `- ${l}：${data.output_data[i].toLocaleString()} 件`).join('\n')}`;
+                    const totalOut = data.output_data.reduce((a,b)=>a+b,0);
+                    const avgH = Math.round(totalOut/732/24/data.labels.length);
+                    h += `
+                        <div class="answer-title">⏱️ 停機影響分析</div>
+                        <div class="insight-box">
+                            <span class="icon">⚡</span>
+                            <div><div class="title">影響評估</div><div class="text">若任一產線停機 <strong>1 小時</strong>：</div></div>
+                        </div>
+                        <div class="stat-grid" style="grid-template-columns:repeat(3,1fr)">
+                            <div class="stat-item"><div class="label">損失產能</div><div class="value" style="font-size:20px">${avgH.toLocaleString()}<span class="unit">件</span></div></div>
+                            <div class="stat-item"><div class="label">佔日產能</div><div class="value" style="font-size:20px">~4.2<span class="unit">%</span></div></div>
+                            <div class="stat-item"><div class="label">建議</div><div class="value" style="font-size:16px;color:#dc2626">立即排除</div></div>
+                        </div>
+                        <p class="text-gray-600 text-sm mt-4 font-medium">各產線小時產能：</p>
+                        <div class="mt-2 space-y-1">
+                            ${data.labels.map((l,i) => {
+                                const h = Math.round(data.output_data[i]/732/24);
+                                return `<div class="flex justify-between py-1 border-b border-gray-100"><span class="font-medium">${l}</span><span class="text-gray-500">${h.toLocaleString()} 件/hr</span></div>`;
+                            }).join('')}
+                        </div>
+                    `;
+                    h += sqlBlock(`SELECT line_no, SUM(total_good)/732/24\nFROM daily_capacity GROUP BY line_no;`);
                     break;
-                    
+
+                case 'error':
+                    h += `<div class="insight-box alert"><span class="icon">❌</span><div><div class="title">錯誤</div><div class="text">${r.msg}</div></div></div>`;
+                    break;
+
                 default:
-                    answer = `已收到問題：「${question}」\n\n請嘗試更具體的問題，或使用左側的問題範例。`;
+                    h += `
+                        <div class="answer-title">🤔 如何幫助您？</div>
+                        <p class="text-gray-600 text-sm mb-3">您問的是：「${esc(r.q || '')}」</p>
+                        <p class="text-gray-600 text-sm mb-2">支援的查詢類型：</p>
+                        <div class="grid grid-cols-2 gap-2 text-xs">
+                            <div class="p-2 bg-blue-50 rounded-lg text-blue-700">📊 資料總覽</div>
+                            <div class="p-2 bg-green-50 rounded-lg text-green-700">📈 良率分析</div>
+                            <div class="p-2 bg-green-50 rounded-lg text-green-700">🔻 最低良率</div>
+                            <div class="p-2 bg-green-50 rounded-lg text-green-700">⚡ 產能分析</div>
+                            <div class="p-2 bg-yellow-50 rounded-lg text-yellow-700">⚠️ 連續掃碼</div>
+                            <div class="p-2 bg-yellow-50 rounded-lg text-yellow-700">🔍 QR 追溯</div>
+                            <div class="p-2 bg-red-50 rounded-lg text-red-700">⏱️ 停機影響</div>
+                        </div>
+                    `;
             }
-            
-            return answer;
+            h += '</div>';
+            return h;
         }
 
-        function addMessage(content, sender, isThinking = false) {
-            const chatHistory = document.getElementById('chatHistory');
-            const id = 'msg-' + Date.now();
-            
-            const html = sender === 'user' 
-                ? `<div class="flex gap-3 justify-end fade-in">
-                       <div class="chat-bubble bg-orange-500 text-white rounded-xl p-4">
-                           <p>${content}</p>
-                       </div>
-                       <div class="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center flex-shrink-0">👤</div>
-                   </div>`
-                : `<div id="${id}" class="flex gap-3 fade-in">
-                       <div class="w-10 h-10 bg-orange-500 rounded-full flex items-center justify-center text-white flex-shrink-0">🦊</div>
-                       <div class="chat-bubble bg-gray-100 rounded-xl p-4">
-                           <div class="text-gray-800 whitespace-pre-wrap ${isThinking ? 'typing-indicator' : ''}">${isThinking ? content : formatMarkdown(content)}</div>
-                       </div>
-                   </div>`;
-            
-            chatHistory.insertAdjacentHTML('beforeend', html);
-            chatHistory.scrollTop = chatHistory.scrollHeight;
-            
-            return id;
+        function badge(v) {
+            if (v >= 96) return '<span class="badge badge-green">優良</span>';
+            if (v >= 94) return '<span class="badge badge-blue">正常</span>';
+            if (v >= 90) return '<span class="badge badge-yellow">注意</span>';
+            return '<span class="badge badge-red">警示</span>';
         }
 
-        function updateMessage(id, content) {
-            const el = document.querySelector(`#${id} .chat-bubble div`);
-            if (el) {
-                el.classList.remove('typing-indicator');
-                el.innerHTML = formatMarkdown(content);
-            }
+        function sqlBlock(sql) {
+            return `<details class="mt-4"><summary class="sql-toggle">🔧 查看 SQL</summary><div class="sql-box"><code>${esc(sql)}</code></div></details>`;
         }
 
-        function formatMarkdown(text) {
-            return text
-                .replace(/### (.*)/g, '<h3 class="font-bold text-lg mb-2">$1</h3>')
-                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                .replace(/\n\n/g, '</p><p class="mt-2">')
-                .replace(/\n/g, '<br>')
-                .replace(/\|(.+)\|/g, (match) => {
-                    const cells = match.split('|').filter(c => c.trim());
-                    if (cells[0].includes('---')) return '';
-                    return '<tr>' + cells.map(c => `<td class="px-2 py-1 border">${c.trim()}</td>`).join('') + '</tr>';
-                })
-                .replace(/(<tr>.*<\/tr>)+/g, '<table class="text-sm border-collapse my-2">$&</table>')
-                .replace(/- \*\*(.*?)\*\*：(.*)/g, '<li><strong>$1</strong>：$2</li>')
-                .replace(/- (.*)/g, '<li>$1</li>')
-                .replace(/(<li>.*<\/li>)+/g, '<ul class="list-disc list-inside my-2">$&</ul>');
+        function esc(s) {
+            const d = document.createElement('div');
+            d.textContent = s;
+            return d.innerHTML;
+        }
+
+        function renderCharts() {
+            document.querySelectorAll('canvas[data-type]').forEach(c => {
+                if (c.rendered) return;
+                c.rendered = true;
+                const t = c.dataset.type;
+                const labels = JSON.parse(c.dataset.labels || '[]');
+                let cfg = {};
+
+                if (t === 'bar') {
+                    cfg = {
+                        type: 'bar',
+                        data: { labels, datasets: [
+                            { label: '良率%', data: JSON.parse(c.dataset.d1), backgroundColor: '#4ade80' },
+                            { label: '不良率%', data: JSON.parse(c.dataset.d2), backgroundColor: '#f87171' }
+                        ]},
+                        options: { responsive: true, maintainAspectRatio: false }
+                    };
+                } else if (t === 'doughnut' || t === 'pie') {
+                    cfg = {
+                        type: t,
+                        data: { labels, datasets: [{ data: JSON.parse(c.dataset.values), backgroundColor: ['#4ade80','#60a5fa','#fbbf24','#f87171'] }] },
+                        options: { responsive: true, maintainAspectRatio: false }
+                    };
+                } else if (t === 'hbar') {
+                    cfg = {
+                        type: 'bar',
+                        data: { labels, datasets: [{ label: '事件數', data: JSON.parse(c.dataset.values), backgroundColor: '#f97316' }] },
+                        options: { responsive: true, maintainAspectRatio: false, indexAxis: 'y' }
+                    };
+                }
+                if (cfg.type) new Chart(c, cfg);
+            });
         }
     </script>
 </body>
