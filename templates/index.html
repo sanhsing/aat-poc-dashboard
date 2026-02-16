@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AAT PoC Dashboard | 產線分析儀表板</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            color: #fff;
+        }
+        
+        .header {
+            background: rgba(255,255,255,0.05);
+            backdrop-filter: blur(10px);
+            padding: 20px 40px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .header h1 {
+            font-size: 24px;
+            font-weight: 600;
+            background: linear-gradient(90deg, #4facfe, #00f2fe);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .header .subtitle {
+            font-size: 14px;
+            color: rgba(255,255,255,0.6);
+            margin-top: 5px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 30px;
+        }
+        
+        /* Stats Cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .stat-card {
+            background: rgba(255,255,255,0.05);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 24px;
+            border: 1px solid rgba(255,255,255,0.1);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 40px rgba(79, 172, 254, 0.2);
+        }
+        
+        .stat-card .label {
+            font-size: 14px;
+            color: rgba(255,255,255,0.6);
+            margin-bottom: 8px;
+        }
+        
+        .stat-card .value {
+            font-size: 32px;
+            font-weight: 700;
+            background: linear-gradient(90deg, #4facfe, #00f2fe);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .stat-card .unit {
+            font-size: 14px;
+            color: rgba(255,255,255,0.4);
+            margin-left: 5px;
+        }
+        
+        /* Chart Grid */
+        .chart-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .chart-card {
+            background: rgba(255,255,255,0.05);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 24px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .chart-card.full-width {
+            grid-column: 1 / -1;
+        }
+        
+        .chart-card h3 {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: rgba(255,255,255,0.9);
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 300px;
+        }
+        
+        /* Table */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .data-table th,
+        .data-table td {
+            padding: 12px 16px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .data-table th {
+            font-weight: 600;
+            color: rgba(255,255,255,0.6);
+            font-size: 12px;
+            text-transform: uppercase;
+        }
+        
+        .data-table td {
+            font-size: 14px;
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .badge.low { background: #10b981; }
+        .badge.medium { background: #f59e0b; }
+        .badge.high { background: #ef4444; }
+        
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 20px;
+            color: rgba(255,255,255,0.4);
+            font-size: 12px;
+        }
+        
+        /* Loading */
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 200px;
+            color: rgba(255,255,255,0.5);
+        }
+        
+        @media (max-width: 1024px) {
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
+            .chart-grid { grid-template-columns: 1fr; }
+        }
+        
+        @media (max-width: 600px) {
+            .stats-grid { grid-template-columns: 1fr; }
+            .container { padding: 15px; }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <h1>🏭 AAT PoC Dashboard</h1>
+        <div class="subtitle">正崴產線資料查詢分析 | DB 驅動即時圖表 | PYLIB v3.18</div>
+    </header>
+    
+    <div class="container">
+        <!-- Stats Cards -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="label">資料表數</div>
+                <div class="value" id="stat-tables">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">總資料量</div>
+                <div class="value" id="stat-rows">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">生產線數</div>
+                <div class="value" id="stat-lines">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">平均良率</div>
+                <div class="value"><span id="stat-yield">-</span><span class="unit">%</span></div>
+            </div>
+        </div>
+        
+        <!-- Chart Grid -->
+        <div class="chart-grid">
+            <!-- 良率趨勢 -->
+            <div class="chart-card full-width">
+                <h3>📈 每日良率趨勢</h3>
+                <div class="chart-container">
+                    <canvas id="yieldTrendChart"></canvas>
+                </div>
+            </div>
+            
+            <!-- 產線比較 -->
+            <div class="chart-card">
+                <h3>📊 各產線良率比較</h3>
+                <div class="chart-container">
+                    <canvas id="lineCompareChart"></canvas>
+                </div>
+            </div>
+            
+            <!-- 產能分佈 -->
+            <div class="chart-card">
+                <h3>🥧 產能分佈</h3>
+                <div class="chart-container">
+                    <canvas id="capacityPieChart"></canvas>
+                </div>
+            </div>
+            
+            <!-- 不良率趨勢 -->
+            <div class="chart-card full-width">
+                <h3>📉 各產線不良率趨勢</h3>
+                <div class="chart-container">
+                    <canvas id="defectTrendChart"></canvas>
+                </div>
+            </div>
+            
+            <!-- QR 追溯 -->
+            <div class="chart-card">
+                <h3>🔍 QR 追溯結果統計</h3>
+                <div class="chart-container">
+                    <canvas id="qrTraceChart"></canvas>
+                </div>
+            </div>
+            
+            <!-- 連續掃碼 -->
+            <div class="chart-card">
+                <h3>⚠️ 連續掃碼事件</h3>
+                <div class="chart-container">
+                    <canvas id="scanEventsChart"></canvas>
+                </div>
+            </div>
+            
+            <!-- 最低良率表 -->
+            <div class="chart-card full-width">
+                <h3>🔻 最低良率記錄 TOP 10</h3>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>排名</th>
+                            <th>產線</th>
+                            <th>日期</th>
+                            <th>良率</th>
+                            <th>不良率</th>
+                            <th>風險等級</th>
+                        </tr>
+                    </thead>
+                    <tbody id="lowestYieldTable">
+                        <tr><td colspan="6" class="loading">載入中...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <footer class="footer">
+        AAT PoC v2 | Decision Validation Framework | @11星協作 | PYLIB v3.18
+    </footer>
+    
+    <script>
+        // Chart.js 全局配置
+        Chart.defaults.color = 'rgba(255,255,255,0.7)';
+        Chart.defaults.borderColor = 'rgba(255,255,255,0.1)';
+        
+        const chartColors = {
+            blue: '#4facfe',
+            cyan: '#00f2fe',
+            orange: '#f093fb',
+            pink: '#f5576c',
+            green: '#10b981',
+            yellow: '#fbbf24'
+        };
+        
+        // 載入統計數據
+        async function loadStats() {
+            const res = await fetch('/api/stats');
+            const data = await res.json();
+            
+            document.getElementById('stat-tables').textContent = data.table_count;
+            document.getElementById('stat-rows').textContent = data.total_rows;
+            document.getElementById('stat-lines').textContent = data.line_count;
+            document.getElementById('stat-yield').textContent = (data.avg_yield * 100).toFixed(2);
+        }
+        
+        // 良率趨勢圖
+        async function loadYieldTrend() {
+            const res = await fetch('/api/daily_yield');
+            const data = await res.json();
+            
+            new Chart(document.getElementById('yieldTrendChart'), {
+                type: 'line',
+                data: {
+                    labels: data.labels,
+                    datasets: [{
+                        label: '良率',
+                        data: data.data.map(v => v * 100),
+                        borderColor: chartColors.blue,
+                        backgroundColor: 'rgba(79, 172, 254, 0.1)',
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            min: 85,
+                            max: 100,
+                            ticks: { callback: v => v + '%' }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // 產線比較圖
+        async function loadLineCompare() {
+            const res = await fetch('/api/line_comparison');
+            const data = await res.json();
+            
+            new Chart(document.getElementById('lineCompareChart'), {
+                type: 'bar',
+                data: {
+                    labels: data.labels,
+                    datasets: [{
+                        label: '良率 %',
+                        data: data.yield_data,
+                        backgroundColor: chartColors.blue
+                    }, {
+                        label: '不良率 %',
+                        data: data.defect_data,
+                        backgroundColor: chartColors.pink
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
+        }
+        
+        // 產能分佈圖
+        async function loadCapacityPie() {
+            const res = await fetch('/api/capacity_distribution');
+            const data = await res.json();
+            
+            new Chart(document.getElementById('capacityPieChart'), {
+                type: 'doughnut',
+                data: {
+                    labels: data.labels,
+                    datasets: [{
+                        data: data.data,
+                        backgroundColor: [chartColors.blue, chartColors.cyan, chartColors.orange, chartColors.pink]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
+        }
+        
+        // 不良率趨勢
+        async function loadDefectTrend() {
+            const res = await fetch('/api/defect_trend');
+            const data = await res.json();
+            
+            new Chart(document.getElementById('defectTrendChart'), {
+                type: 'line',
+                data: {
+                    labels: data.labels,
+                    datasets: data.datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { ticks: { callback: v => v + '%' } }
+                    }
+                }
+            });
+        }
+        
+        // QR 追溯
+        async function loadQRTrace() {
+            const res = await fetch('/api/qr_trace');
+            const data = await res.json();
+            
+            new Chart(document.getElementById('qrTraceChart'), {
+                type: 'pie',
+                data: {
+                    labels: data.labels,
+                    datasets: [{
+                        data: data.data,
+                        backgroundColor: [chartColors.green, chartColors.pink]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
+        }
+        
+        // 連續掃碼事件
+        async function loadScanEvents() {
+            const res = await fetch('/api/scan_events');
+            const data = await res.json();
+            
+            new Chart(document.getElementById('scanEventsChart'), {
+                type: 'bar',
+                data: {
+                    labels: data.labels,
+                    datasets: [{
+                        label: '事件數',
+                        data: data.data,
+                        backgroundColor: chartColors.orange
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    indexAxis: 'y'
+                }
+            });
+        }
+        
+        // 最低良率表
+        async function loadLowestYield() {
+            const res = await fetch('/api/lowest_yield');
+            const data = await res.json();
+            
+            const tbody = document.getElementById('lowestYieldTable');
+            tbody.innerHTML = data.records.map((r, i) => {
+                let badge = 'low';
+                if (r.yield < 90) badge = 'high';
+                else if (r.yield < 95) badge = 'medium';
+                
+                return `
+                    <tr>
+                        <td>${i + 1}</td>
+                        <td>${r.line}</td>
+                        <td>${r.date}</td>
+                        <td>${r.yield}%</td>
+                        <td>${r.defect}%</td>
+                        <td><span class="badge ${badge}">${badge.toUpperCase()}</span></td>
+                    </tr>
+                `;
+            }).join('');
+        }
+        
+        // 初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            loadStats();
+            loadYieldTrend();
+            loadLineCompare();
+            loadCapacityPie();
+            loadDefectTrend();
+            loadQRTrace();
+            loadScanEvents();
+            loadLowestYield();
+        });
+    </script>
+</body>
+</html>
