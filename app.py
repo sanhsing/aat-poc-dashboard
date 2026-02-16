@@ -270,8 +270,13 @@ def api_lowest_yield():
 
 @app.route('/')
 def index():
-    """主頁"""
+    """主頁 - Dashboard"""
     return render_template('index.html')
+
+@app.route('/query')
+def query():
+    """查詢頁面 - LLM 風格"""
+    return render_template('query.html')
 
 @app.route('/health')
 def health():
